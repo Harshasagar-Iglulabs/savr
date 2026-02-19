@@ -31,7 +31,7 @@ let menuDb: FoodItem[] = [
   {
     id: 'm2',
     name: 'Paneer Tikka Wrap',
-    description: 'Smoky paneer, mint chutney, and onions.',
+    description: 'Smoky paneer, mint chutney, apnd onions.',
     actualPrice: 240,
     discountedPrice: 210,
     imageUrl:
@@ -50,7 +50,6 @@ const metricsDb: RestaurantMetrics = {
   ordersToday: 46,
   orderStatus: {
     pending: 8,
-    preparing: 5,
     completed: 31,
     cancelled: 2,
   },

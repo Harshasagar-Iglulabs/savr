@@ -39,7 +39,6 @@ const initialState: UserState = {
   error: null,
   filters: {
     maxDistanceKm: 8,
-    pickupWindowMin: 35,
   },
   cart: [],
   orders: [],
@@ -165,7 +164,7 @@ const userSlice = createSlice({
     },
     updateOrderStatus(
       state,
-      action: PayloadAction<{orderId: string; status: 'preparing' | 'completed'}>,
+      action: PayloadAction<{orderId: string; status: 'completed'}>,
     ) {
       const {orderId, status} = action.payload;
       const order = state.orders.find(entry => entry.id === orderId);

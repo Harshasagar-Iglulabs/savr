@@ -1,19 +1,10 @@
-import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {Animated, FlatList, Pressable, StyleSheet, View} from 'react-native';
+import React, {useEffect, useMemo, useState} from 'react';
+import {Pressable, StyleSheet, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {
-  Button,
-  Card,
-  Chip,
-  Modal,
-  Portal,
-  Surface,
-  Text,
-  TextInput,
-} from 'react-native-paper';
-import {FadeSlideIn} from '../components/animations/FadeSlideIn';
-import {RestaurantCard} from '../components/cards/RestaurantCard';
+import {Button, Modal, Portal, Surface, Text, TextInput} from 'react-native-paper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {ScreenContainer} from '../components/common/ScreenContainer';
+import {PALETTE} from '../constants/palette';
 import type {RootStackParamList} from '../navigation/types';
 import {useAppDispatch, useAppSelector} from '../store/hooks';
 import {
@@ -21,12 +12,13 @@ import {
   fetchNearbyRestaurantsThunk,
   setUserLocation,
   submitOrderRating,
-  updateOrderStatus,
 } from '../store/slices/userSlice';
-import {formatPrice} from '../utils/format';
+import {NearYouScreen} from './restaurants/NearYouScreen';
+import {OrdersScreen} from './restaurants/OrdersScreen';
+import {ProfileTabScreen} from './restaurants/ProfileTabScreen';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Restaurants'>;
-type LandingTab = 'explore' | 'orders';
+type LandingTab = 'explore' | 'orders' | 'profile';
 
 const recentLocations = [
   {label: 'Indiranagar, Bengaluru', latitude: 12.9784, longitude: 77.6408},
@@ -49,7 +41,6 @@ export function RestaurantsScreen({navigation, route}: Props) {
   const {
     restaurants,
     locationGranted,
-    locationLabel,
     latitude,
     longitude,
     loadingNearby,
@@ -57,65 +48,40 @@ export function RestaurantsScreen({navigation, route}: Props) {
     pendingRatingOrderId,
   } = useAppSelector(state => state.user);
 
-  const [modalVisible, setModalVisible] = useState(false);
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [searchLocation, setSearchLocation] = useState('');
   const [activeTab, setActiveTab] = useState<LandingTab>(
     route.params?.tab === 'orders' ? 'orders' : 'explore',
   );
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
 
-  const heroPulse = useRef(new Animated.Value(0.98)).current;
-
   useEffect(() => {
     if (route.params?.tab === 'orders') {
       setActiveTab('orders');
-    }
-  }, [route.params?.tab]);
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: locationGranted ? locationLabel : 'Set Location',
-      headerTitleAlign: 'center',
-      headerTitle: () => (
-        <Pressable onPress={() => setModalVisible(true)}>
-          <Text style={styles.headerTitle}>{locationGranted ? locationLabel : 'Set Location'}</Text>
-        </Pressable>
-      ),
-      headerRight: () => (
-        <Button compact mode="text" textColor="#f9f9f9" onPress={() => setModalVisible(true)}>
-          Change
-        </Button>
-      ),
-    });
-  }, [locationGranted, locationLabel, navigation]);
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(heroPulse, {
-          toValue: 1.02,
-          duration: 1600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(heroPulse, {
-          toValue: 0.98,
-          duration: 1600,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    loop.start();
-    return () => loop.stop();
-  }, [heroPulse]);
-
-  useEffect(() => {
-    if (!locationGranted) {
-      setModalVisible(true);
       return;
     }
 
-    if (locationGranted && restaurants.length === 0 && latitude !== null && longitude !== null) {
+    if (route.params?.tab === 'explore') {
+      setActiveTab('explore');
+    }
+  }, [route.params?.tab]);
+
+  useEffect(() => {
+    if (!route.params?.openLocationPicker) {
+      return;
+    }
+
+    setLocationModalVisible(true);
+    navigation.setParams({openLocationPicker: undefined});
+  }, [navigation, route.params?.openLocationPicker]);
+
+  useEffect(() => {
+    if (!locationGranted) {
+      setLocationModalVisible(true);
+      return;
+    }
+
+    if (restaurants.length === 0 && latitude !== null && longitude !== null) {
       dispatch(fetchNearbyRestaurantsThunk({latitude, longitude}));
     }
   }, [dispatch, latitude, locationGranted, longitude, restaurants.length]);
@@ -145,7 +111,7 @@ export function RestaurantsScreen({navigation, route}: Props) {
         longitude: current.longitude,
       }),
     );
-    setModalVisible(false);
+    setLocationModalVisible(false);
   };
 
   const applySearchedLocation = async () => {
@@ -167,118 +133,87 @@ export function RestaurantsScreen({navigation, route}: Props) {
         longitude: coords.longitude,
       }),
     );
-    setModalVisible(false);
+    setLocationModalVisible(false);
   };
-
-  const renderExploreTab = () => (
-    <FlatList
-      data={restaurants}
-      keyExtractor={item => item.id}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.listContent}
-      renderItem={({item, index}) => (
-        <FadeSlideIn delay={index * 80} distance={18}>
-          <RestaurantCard
-            restaurant={item}
-            onPress={() => navigation.navigate('Foods', {restaurantId: item.id})}
-          />
-        </FadeSlideIn>
-      )}
-    />
-  );
-
-  const renderOrdersTab = () => (
-    <FlatList
-      data={orders}
-      keyExtractor={item => item.id}
-      contentContainerStyle={styles.listContent}
-      ListEmptyComponent={
-        <Card mode="outlined" style={styles.emptyCard}>
-          <Card.Content>
-            <Text variant="titleMedium">No orders yet</Text>
-            <Text variant="bodySmall">Place an order from Explore tab to track it here.</Text>
-          </Card.Content>
-        </Card>
-      }
-      renderItem={({item}) => (
-        <Card mode="contained" style={styles.orderCard}>
-          <Card.Content style={styles.orderContent}>
-            <Text variant="titleMedium">{item.restaurantName}</Text>
-            <Text variant="bodySmall">Order Code: {item.id.slice(-5).toUpperCase()}</Text>
-            <Text variant="bodySmall">Amount: {formatPrice(item.totalAmount)}</Text>
-            <Text variant="bodySmall">Status: {item.status.toUpperCase()}</Text>
-            {item.status === 'placed' ? (
-              <Button
-                mode="contained-tonal"
-                onPress={() => dispatch(updateOrderStatus({orderId: item.id, status: 'preparing'}))}>
-                Mark Preparing (Demo)
-              </Button>
-            ) : null}
-            {item.status === 'preparing' ? (
-              <Button
-                mode="contained"
-                onPress={() => dispatch(updateOrderStatus({orderId: item.id, status: 'completed'}))}>
-                Mark Completed (Demo)
-              </Button>
-            ) : null}
-          </Card.Content>
-        </Card>
-      )}
-    />
-  );
 
   return (
     <ScreenContainer>
-      <FadeSlideIn>
-        <Animated.View style={[styles.heroWrap, {transform: [{scale: heroPulse}]}]}>
-          <Text variant="bodyMedium" style={styles.locationText}>
-            Current Location
-          </Text>
-          <Text variant="headlineSmall" style={styles.heroTitle}>
-            {locationGranted ? locationLabel : 'Set your location'}
-          </Text>
+      <View style={styles.contentWrap}>
+        {activeTab === 'explore' ? (
+          <NearYouScreen
+            onSelectRestaurant={restaurantId => navigation.navigate('Foods', {restaurantId})}
+            onOpenCart={() => navigation.navigate('Cart')}
+          />
+        ) : null}
 
-          <View style={styles.searchRow}>
-            <Pressable style={styles.searchBox} onPress={() => setModalVisible(true)}>
-              <Text style={styles.searchPlaceholder}>Find food or restaurant...</Text>
-            </Pressable>
-            <Pressable style={styles.filterBtn} onPress={() => setModalVisible(true)}>
-              <Text style={styles.filterText}>⚙</Text>
-            </Pressable>
-          </View>
+        {activeTab === 'orders' ? <OrdersScreen /> : null}
 
-          <View style={styles.categoryRow}>
-            <Chip style={styles.categoryChip} textStyle={styles.categoryText}>Meals</Chip>
-            <Chip style={styles.categoryChip} textStyle={styles.categoryText}>Bakery</Chip>
-            <Chip style={styles.categoryChip} textStyle={styles.categoryText}>Pantry</Chip>
-          </View>
-
-          <View style={styles.saleCard}>
-            <Text style={styles.saleTitle}>Launch Sale</Text>
-            <Text style={styles.saleSub}>20% OFF</Text>
-          </View>
-        </Animated.View>
-      </FadeSlideIn>
-
-      <View style={styles.tabSwitchWrap}>
-        <Pressable
-          style={[styles.topTabBtn, activeTab === 'explore' && styles.topTabActive]}
-          onPress={() => setActiveTab('explore')}>
-          <Text style={[styles.topTabText, activeTab === 'explore' && styles.topTabTextActive]}>Near You</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.topTabBtn, activeTab === 'orders' && styles.topTabActive]}
-          onPress={() => setActiveTab('orders')}>
-          <Text style={[styles.topTabText, activeTab === 'orders' && styles.topTabTextActive]}>Orders</Text>
-        </Pressable>
+        {activeTab === 'profile' ? <ProfileTabScreen /> : null}
       </View>
 
-      <View style={styles.contentWrap}>{activeTab === 'explore' ? renderExploreTab() : renderOrdersTab()}</View>
+      <Surface style={styles.bottomTabWrap} elevation={4}>
+        <Pressable
+          style={[styles.bottomTabBtn, activeTab === 'explore' && styles.bottomTabBtnActive]}
+          onPress={() => setActiveTab('explore')}>
+          <View style={styles.bottomTabItem}>
+            <MaterialIcons
+              name="location-on"
+              size={16}
+              color={
+                activeTab === 'explore'
+                  ? PALETTE.textOnPrimary
+                  : PALETTE.navigation.tabInactive
+              }
+            />
+            <Text style={[styles.bottomTabText, activeTab === 'explore' && styles.bottomTabTextActive]}>
+              Near You
+            </Text>
+          </View>
+        </Pressable>
+
+        <Pressable
+          style={[styles.bottomTabBtn, activeTab === 'orders' && styles.bottomTabBtnActive]}
+          onPress={() => setActiveTab('orders')}>
+          <View style={styles.bottomTabItem}>
+            <MaterialIcons
+              name="shopping-bag"
+              size={16}
+              color={
+                activeTab === 'orders'
+                  ? PALETTE.textOnPrimary
+                  : PALETTE.navigation.tabInactive
+              }
+            />
+            <Text style={[styles.bottomTabText, activeTab === 'orders' && styles.bottomTabTextActive]}>
+              Orders
+            </Text>
+          </View>
+        </Pressable>
+
+        <Pressable
+          style={[styles.bottomTabBtn, activeTab === 'profile' && styles.bottomTabBtnActive]}
+          onPress={() => setActiveTab('profile')}>
+          <View style={styles.bottomTabItem}>
+            <MaterialIcons
+              name="person-outline"
+              size={16}
+              color={
+                activeTab === 'profile'
+                  ? PALETTE.textOnPrimary
+                  : PALETTE.navigation.tabInactive
+              }
+            />
+            <Text style={[styles.bottomTabText, activeTab === 'profile' && styles.bottomTabTextActive]}>
+              Profile
+            </Text>
+          </View>
+        </Pressable>
+      </Surface>
 
       <Portal>
         <Modal
-          visible={modalVisible}
-          onDismiss={() => locationGranted && setModalVisible(false)}
+          visible={locationModalVisible}
+          onDismiss={() => locationGranted && setLocationModalVisible(false)}
           contentContainerStyle={styles.modalWrap}>
           <Surface style={styles.modalCard} elevation={4}>
             <Text variant="headlineSmall" style={styles.modalTitle}>
@@ -300,7 +235,10 @@ export function RestaurantsScreen({navigation, route}: Props) {
               <Button mode="contained-tonal" onPress={useCurrentLocation} disabled={loadingNearby}>
                 Use Current Location
               </Button>
-              <Button mode="contained" onPress={applySearchedLocation} disabled={loadingNearby || !searchLocation.trim()}>
+              <Button
+                mode="contained"
+                onPress={applySearchedLocation}
+                disabled={loadingNearby || !searchLocation.trim()}>
                 Search & Apply
               </Button>
             </View>
@@ -319,7 +257,7 @@ export function RestaurantsScreen({navigation, route}: Props) {
                         longitude: location.longitude,
                       }),
                     );
-                    setModalVisible(false);
+                    setLocationModalVisible(false);
                   }}>
                   {location.label}
                 </Button>
@@ -340,6 +278,9 @@ export function RestaurantsScreen({navigation, route}: Props) {
                 <Button
                   key={score}
                   mode="contained-tonal"
+                  icon={({size, color}) => (
+                    <MaterialIcons name="star-border" size={size} color={color} />
+                  )}
                   onPress={() => {
                     if (pendingOrderForRating) {
                       dispatch(
@@ -351,7 +292,7 @@ export function RestaurantsScreen({navigation, route}: Props) {
                     }
                     setRatingModalVisible(false);
                   }}>
-                  {score}★
+                  {score}
                 </Button>
               ))}
             </View>
@@ -370,114 +311,42 @@ export function RestaurantsScreen({navigation, route}: Props) {
 }
 
 const styles = StyleSheet.create({
-  headerTitle: {
-    color: '#f9f9f9',
-    fontFamily: 'Nunito-Bold',
-    maxWidth: 210,
-  },
-  heroWrap: {
-    backgroundColor: '#027146',
-    borderRadius: 22,
-    padding: 14,
-    gap: 10,
-  },
-  locationText: {
-    color: '#d1fae5',
-  },
-  heroTitle: {
-    color: '#ffffff',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  searchBox: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    minHeight: 48,
-  },
-  searchPlaceholder: {
-    color: '#94a3b8',
-    fontFamily: 'Nunito-Regular',
-  },
-  filterBtn: {
-    width: 48,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterText: {
-    color: '#027146',
-    fontSize: 18,
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  categoryChip: {
-    backgroundColor: '#0f5132',
-  },
-  categoryText: {
-    color: '#ffffff',
-  },
-  saleCard: {
-    backgroundColor: '#0b5e3c',
-    borderRadius: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  saleTitle: {
-    color: '#d1fae5',
-    fontFamily: 'Nunito-Bold',
-    fontSize: 18,
-  },
-  saleSub: {
-    color: '#ffffff',
-    fontFamily: 'Nunito-Bold',
-    fontSize: 32,
-  },
-  tabSwitchWrap: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  topTabBtn: {
-    flex: 1,
-    backgroundColor: '#d1fae5',
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  topTabActive: {
-    backgroundColor: '#027146',
-  },
-  topTabText: {
-    color: '#0f5132',
-    fontFamily: 'Nunito-Bold',
-  },
-  topTabTextActive: {
-    color: '#ffffff',
-  },
   contentWrap: {
     flex: 1,
   },
-  listContent: {
-    paddingBottom: 24,
-    paddingTop: 8,
-  },
-  emptyCard: {
-    marginTop: 12,
-  },
-  orderCard: {
-    marginBottom: 10,
+  bottomTabWrap: {
+    flexDirection: 'row',
+    backgroundColor: PALETTE.background,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: PALETTE.lightBorder,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
-  orderContent: {
-    gap: 6,
+  bottomTabBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    borderRadius: 12,
+  },
+  bottomTabBtnActive: {
+    backgroundColor: PALETTE.primary,
+    borderWidth: 1,
+    borderColor: PALETTE.primary,
+  },
+  bottomTabItem: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  bottomTabText: {
+    color: PALETTE.navigation.tabInactive,
+    fontFamily: 'Nunito-Bold',
+  },
+  bottomTabTextActive: {
+    color: PALETTE.textOnPrimary,
   },
   modalWrap: {
     marginHorizontal: 14,
@@ -491,13 +360,13 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
     padding: 16,
     gap: 12,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: PALETTE.modal,
   },
   modalTitle: {
-    color: '#027146',
+    color: PALETTE.primary,
   },
   modalSubtitle: {
-    color: '#4b5563',
+    color: PALETTE.textSecondary,
   },
   modalButtons: {
     gap: 8,

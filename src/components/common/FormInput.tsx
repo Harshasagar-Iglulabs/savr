@@ -1,6 +1,7 @@
 import React from 'react';
 import {StyleSheet} from 'react-native';
 import {TextInput, type TextInputProps} from 'react-native-paper';
+import {PALETTE} from '../../constants/palette';
 
 type Props = TextInputProps & {
   label: string;
@@ -13,6 +14,10 @@ export function FormInput({label, style, contentStyle, ...rest}: Props) {
       label={label}
       style={[styles.input, style]}
       contentStyle={[styles.content, contentStyle]}
+      outlineColor={PALETTE.input.border}
+      activeOutlineColor={PALETTE.input.focusBorder}
+      placeholderTextColor={PALETTE.input.placeholder}
+      textColor={PALETTE.input.text}
       theme={{
         fonts: {
           bodyLarge: {fontFamily: 'Nunito-Regular'},
@@ -27,7 +32,7 @@ export function FormInput({label, style, contentStyle, ...rest}: Props) {
 
 const styles = StyleSheet.create({
   input: {
-    backgroundColor: '#ffffff',
+    backgroundColor: PALETTE.input.background,
     marginBottom: 20,
   },
   content: {

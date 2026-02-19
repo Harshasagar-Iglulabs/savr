@@ -34,7 +34,6 @@ export type Restaurant = {
   name: string;
   cuisine: string;
   distanceKm: number;
-  etaMin: number;
   averageRating: number;
   imageUrl?: string;
   foods: FoodItem[];
@@ -50,7 +49,7 @@ export type CartItem = {
   quantity: number;
 };
 
-export type UserOrderStatus = 'placed' | 'preparing' | 'completed';
+export type UserOrderStatus = 'placed' | 'completed';
 
 export type UserOrder = {
   id: string;
@@ -66,7 +65,6 @@ export type UserOrder = {
 
 export type UserSearchFilters = {
   maxDistanceKm: number;
-  pickupWindowMin: number;
 };
 
 export type RestaurantProfile = {
@@ -88,7 +86,6 @@ export type RevenueChannel = {
 
 export type OrderStatus = {
   pending: number;
-  preparing: number;
   completed: number;
   cancelled: number;
 };
@@ -112,4 +109,13 @@ export type RestaurantMenuItemInput = {
   discountedPrice: number;
   availableFrom: number;
   quantity: number;
+};
+
+export type AppNotification = {
+  id: string;
+  title: string;
+  body: string;
+  receivedAtEpoch: number;
+  read: boolean;
+  data?: Record<string, string>;
 };

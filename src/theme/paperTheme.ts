@@ -1,4 +1,5 @@
 import {MD3LightTheme, type MD3Theme} from 'react-native-paper';
+import {PALETTE} from '../constants/palette';
 
 const nunitoFonts = {
   ...MD3LightTheme.fonts,
@@ -25,14 +26,16 @@ export const paperTheme: MD3Theme = {
   fonts: nunitoFonts,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#027146',
-    onPrimary: '#f9f9f9',
-    primaryContainer: '#e8e8e8',
-    onPrimaryContainer: '#027146',
-    secondary: '#539c80',
-    background: '#f9f9f9',
-    surface: '#f9f9f9',
-    surfaceVariant: '#e8e8e8',
-    outline: '#539c80',
+    primary: PALETTE.primary,
+    onPrimary: PALETTE.textOnPrimary,
+    primaryContainer: PALETTE.accent,
+    onPrimaryContainer: PALETTE.textPrimary,
+    secondary: PALETTE.secondary,
+    background: PALETTE.background,
+    surface: PALETTE.surface,
+    surfaceVariant: PALETTE.divider,
+    outline: PALETTE.divider,
+    onBackground: PALETTE.textPrimary,
+    onSurface: PALETTE.textPrimary,
   },
 };

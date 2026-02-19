@@ -105,6 +105,12 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    sourceSets {
+        main {
+            // Load app assets directly from project source to avoid requiring writes in src/main/assets.
+            assets.srcDirs += ['../../src/assets']
+        }
+    }
 }
 
 dependencies {
@@ -117,3 +123,4 @@ dependencies {
         implementation jscFlavor
     }
 }
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")

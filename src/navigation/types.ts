@@ -3,7 +3,13 @@ export type RootStackParamList = {
   Login: undefined;
   Otp: undefined;
   Profile: undefined;
-  Restaurants: {tab?: 'explore' | 'orders'} | undefined;
+  Restaurants:
+    | {
+        tab?: 'explore' | 'orders';
+        openLocationPicker?: boolean;
+      }
+    | undefined;
+  Notifications: undefined;
   Foods: {restaurantId: string};
   Cart: undefined;
   RestaurantDashboard: undefined;

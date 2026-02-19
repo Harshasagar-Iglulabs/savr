@@ -72,7 +72,6 @@ export function RestaurantDashboardScreen({navigation}: Props) {
               <Text variant="titleMedium">Today's Order Status</Text>
               <View style={styles.chips}>
                 <Chip>Pending {metrics.orderStatus.pending}</Chip>
-                <Chip>Preparing {metrics.orderStatus.preparing}</Chip>
                 <Chip>Completed {metrics.orderStatus.completed}</Chip>
                 <Chip>Cancelled {metrics.orderStatus.cancelled}</Chip>
               </View>

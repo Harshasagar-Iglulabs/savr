@@ -1,16 +1,56 @@
 import React, {useEffect, useRef} from 'react';
 import {Animated, Easing, StyleSheet, View} from 'react-native';
-import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {ActivityIndicator, Chip, Text} from 'react-native-paper';
-import type {RootStackParamList} from '../navigation/types';
+import {ActivityIndicator, Text} from 'react-native-paper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {useAppDispatch} from '../store/hooks';
+import {restoreAuthState, setAuthHydrated} from '../store/slices/authSlice';
+import {setProfile} from '../store/slices/userSlice';
+import {loadPersistedAuthState, loadPersistedProfile} from '../utils/localStorage';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
-
-export function SplashScreen({navigation}: Props) {
+export function SplashScreen() {
+  const dispatch = useAppDispatch();
   const logoScale = useRef(new Animated.Value(0.92)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const ringRotate = useRef(new Animated.Value(0)).current;
   const floatY = useRef(new Animated.Value(0)).current;
+  const floatA = useRef(new Animated.Value(0)).current;
+  const floatB = useRef(new Animated.Value(0)).current;
+  const floatC = useRef(new Animated.Value(0)).current;
+  const floatD = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    let mounted = true;
+
+    const hydrateFromStorage = async () => {
+      const [authState, profileState] = await Promise.all([
+        loadPersistedAuthState(),
+        loadPersistedProfile(),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (authState) {
+        dispatch(restoreAuthState(authState));
+      }
+
+      if (profileState) {
+        dispatch(setProfile(profileState));
+      }
+
+      dispatch(setAuthHydrated(true));
+    };
+
+    hydrateFromStorage();
+
+    Animated.timing(logoOpacity, {
+      toValue: 1,
+      duration: 650,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+
     const loop = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -43,50 +83,99 @@ export function SplashScreen({navigation}: Props) {
         ]),
       ]),
     );
+    const rotateLoop = Animated.loop(
+      Animated.timing(ringRotate, {
+        toValue: 1,
+        duration: 3800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
 
     loop.start();
-
-    const timeout = setTimeout(() => {
-      navigation.replace('Login');
-    }, 1800);
+    rotateLoop.start();
+    const makeFloat = (value: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(value, {
+            toValue: -10,
+            duration: 1000,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(value, {
+            toValue: 0,
+            duration: 900,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+    const loopA = makeFloat(floatA, 0);
+    const loopB = makeFloat(floatB, 180);
+    const loopC = makeFloat(floatC, 360);
+    const loopD = makeFloat(floatD, 520);
+    loopA.start();
+    loopB.start();
+    loopC.start();
+    loopD.start();
 
     return () => {
+      mounted = false;
       loop.stop();
-      clearTimeout(timeout);
+      rotateLoop.stop();
+      loopA.stop();
+      loopB.stop();
+      loopC.stop();
+      loopD.stop();
     };
-  }, [floatY, logoScale, navigation]);
+  }, [dispatch, floatA, floatB, floatC, floatD, floatY, logoOpacity, logoScale, ringRotate]);
+
+  const ringRotation = ringRotate.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   return (
     <View style={styles.container}>
       <View style={styles.backBlobTop} />
       <View style={styles.backBlobBottom} />
 
+      <Animated.View style={[styles.foodIcon, styles.foodTopLeft, {transform: [{translateY: floatA}]}]}>
+        <MaterialIcons name="ramen-dining" size={32} color="#b6b6b6" />
+      </Animated.View>
+      <Animated.View style={[styles.foodIcon, styles.foodTopRight, {transform: [{translateY: floatB}]}]}>
+        <MaterialIcons name="lunch-dining" size={34} color="#a9a9a9" />
+      </Animated.View>
+      <Animated.View style={[styles.foodIcon, styles.foodBottomLeft, {transform: [{translateY: floatC}]}]}>
+        <MaterialIcons name="bakery-dining" size={32} color="#bcbcbc" />
+      </Animated.View>
+      <Animated.View style={[styles.foodIcon, styles.foodBottomRight, {transform: [{translateY: floatD}]}]}>
+        <MaterialIcons name="icecream" size={30} color="#b0b0b0" />
+      </Animated.View>
+
       <Animated.View
         style={[
-          styles.brandCard,
+          styles.brandWrap,
           {
+            opacity: logoOpacity,
             transform: [{scale: logoScale}, {translateY: floatY}],
           },
         ]}>
-        <Text variant="displaySmall" style={styles.brand}>
-          savr
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Fast food ordering for users and restaurants
-        </Text>
+        <Animated.View style={[styles.logoRing, {transform: [{rotate: ringRotation}]}]}>
+          <MaterialIcons name="circle" size={10} color="#d0d0d0" style={styles.ringDotTop} />
+          <MaterialIcons name="circle" size={10} color="#c4c4c4" style={styles.ringDotRight} />
+          <MaterialIcons name="circle" size={10} color="#d6d6d6" style={styles.ringDotBottom} />
+          <MaterialIcons name="circle" size={10} color="#cfcfcf" style={styles.ringDotLeft} />
+        </Animated.View>
+        <View style={styles.logoBadge}>
+          <Text variant="headlineMedium" style={styles.brand}>
+            savr
+          </Text>
+        </View>
+        <Text variant="bodyMedium" style={styles.subtitle}>Fast food ordering made simple</Text>
       </Animated.View>
-
-      <View style={styles.badges}>
-        <Chip compact icon="food-outline">
-          Nearby
-        </Chip>
-        <Chip compact icon="clock-outline">
-          Live ETA
-        </Chip>
-        <Chip compact icon="sale-outline">
-          Best Deals
-        </Chip>
-      </View>
 
       <ActivityIndicator animating color="#027146" />
     </View>
@@ -120,15 +209,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#e8e8e8',
   },
-  brandCard: {
-    width: '100%',
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    paddingVertical: 26,
-    paddingHorizontal: 22,
-    borderWidth: 1,
-    borderColor: '#d8e8e1',
-  },
   brand: {
     color: '#027146',
     fontWeight: '800',
@@ -140,10 +220,75 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#4b5563',
   },
-  badges: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
+  brandWrap: {
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+  },
+  logoRing: {
+    position: 'absolute',
+    width: 196,
+    height: 196,
+    borderRadius: 98,
+    borderWidth: 1,
+    borderColor: '#e6e6e6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringDotTop: {
+    position: 'absolute',
+    top: -6,
+  },
+  ringDotRight: {
+    position: 'absolute',
+    right: -6,
+  },
+  ringDotBottom: {
+    position: 'absolute',
+    bottom: -6,
+  },
+  ringDotLeft: {
+    position: 'absolute',
+    left: -6,
+  },
+  logoBadge: {
+    width: 156,
+    height: 156,
+    borderRadius: 78,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d9d9d9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  foodIcon: {
+    position: 'absolute',
+    backgroundColor: '#efefef',
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  foodTopLeft: {
+    top: '24%',
+    left: '16%',
+  },
+  foodTopRight: {
+    top: '24%',
+    right: '16%',
+  },
+  foodBottomLeft: {
+    bottom: '28%',
+    left: '18%',
+  },
+  foodBottomRight: {
+    bottom: '28%',
+    right: '18%',
   },
 });

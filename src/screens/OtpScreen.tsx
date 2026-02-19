@@ -3,16 +3,17 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Card, Text} from 'react-native-paper';
+import {Button, Card, Text} from 'react-native-paper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {autoFillOtp} from '../services/auth';
 import {FadeSlideIn} from '../components/animations/FadeSlideIn';
 import {FormInput} from '../components/common/FormInput';
-import {PrimaryButton} from '../components/common/PrimaryButton';
+import {PALETTE} from '../constants/palette';
 import type {RootStackParamList} from '../navigation/types';
 import {useAppDispatch, useAppSelector} from '../store/hooks';
 import {setOtpInput, verifyOtpThunk} from '../store/slices/authSlice';
@@ -24,6 +25,7 @@ export function OtpScreen({navigation}: Props) {
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const {otpInput, loading, error} = useAppSelector(state => state.auth);
+  const formPaddingBottom = 16 + insets.bottom;
 
   useEffect(() => {
     if (otpInput.trim().length === 6) {
@@ -68,46 +70,68 @@ export function OtpScreen({navigation}: Props) {
             style={styles.heroImage}
             resizeMode="cover"
           />
+          <View style={styles.overlay}>
+            <Text variant="titleMedium" style={styles.heroCaption}>
+              One step away from your account
+            </Text>
+          </View>
         </View>
 
         <FadeSlideIn delay={100} style={styles.formWrap}>
           <Card mode="contained" style={styles.card}>
-            <Card.Content style={[styles.cardContent, {paddingBottom: 20 + insets.bottom}]}>
-              <Text variant="headlineSmall" style={styles.title}>
-                Verify OTP
-              </Text>
-              <Text variant="bodyMedium" style={styles.subtitle}>
-                Enter the 6-digit code sent to your mobile.
-              </Text>
+            <View style={styles.dragHandle} />
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.cardContent, {paddingBottom: formPaddingBottom}]}
+              style={styles.cardScroll}>
+              <Card.Content style={styles.cardInner}>
+                <Text variant="headlineSmall" style={styles.formTitle}>
+                  Verify OTP
+                </Text>
+                <Text variant="bodyMedium" style={styles.formSubtitle}>
+                  Enter the 6-digit code sent to your mobile
+                </Text>
 
-              <FormInput
-                label="One-Time Password"
-                keyboardType="number-pad"
-                maxLength={6}
-                value={otpInput}
-                onChangeText={value => dispatch(setOtpInput(value))}
-              />
+                <FormInput
+                  label="One-Time Password"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  value={otpInput}
+                  onChangeText={value => dispatch(setOtpInput(value))}
+                />
 
-              <View style={styles.dotRow}>
-                {Array.from({length: 6}).map((_, index) => {
-                  const filled = index < otpInput.length;
-                  return <View key={index} style={[styles.dot, filled && styles.dotFilled]} />;
-                })}
-              </View>
+                <View style={styles.dotRow}>
+                  {Array.from({length: 6}).map((_, index) => {
+                    const filled = index < otpInput.length;
+                    return <View key={index} style={[styles.dot, filled && styles.dotFilled]} />;
+                  })}
+                </View>
 
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-              <PrimaryButton
-                label="Confirm & Continue"
-                onPress={onVerify}
-                loading={loading}
-                disabled={loading || otpInput.trim().length !== 6}
-              />
+                <Button
+                  mode="outlined"
+                  onPress={onVerify}
+                  loading={loading}
+                  textColor={
+                    loading
+                      ? PALETTE.buttons.secondary.disabledText
+                      : PALETTE.buttons.secondary.text
+                  }
+                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                  contentStyle={styles.submitButtonContent}
+                  disabled={loading || otpInput.trim().length !== 6}
+                  labelStyle={styles.submitButtonLabel}>
+                  Submit
+                </Button>
 
-              <Text variant="bodySmall" style={styles.demoText}>
-                Demo OTP: {DEMO_OTP}
-              </Text>
-            </Card.Content>
+                <Text variant="bodySmall" style={styles.demoText}>
+                  Demo OTP: {DEMO_OTP}
+                </Text>
+              </Card.Content>
+            </ScrollView>
           </Card>
         </FadeSlideIn>
       </View>
@@ -118,49 +142,81 @@ export function OtpScreen({navigation}: Props) {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: PALETTE.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: PALETTE.surface,
   },
   hero: {
     flex: 1,
     overflow: 'hidden',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    justifyContent: 'flex-end',
   },
   heroImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: PALETTE.overlays.dark,
+    paddingBottom: 160,
+    paddingHorizontal: 24,
+  },
+  heroCaption: {
+    color: PALETTE.textInverse,
+    fontFamily: 'Nunito-Bold',
+    textAlign: 'center',
   },
   formWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: PALETTE.surface,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     overflow: 'hidden',
+    minHeight: '34%',
+    maxHeight: '48%',
   },
   card: {
     marginHorizontal: 0,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: PALETTE.surface,
+    flex: 1,
+  },
+  cardScroll: {
+    flex: 1,
+  },
+  dragHandle: {
+    width: 56,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: PALETTE.divider,
+    alignSelf: 'center',
+    marginTop: 10,
+  },
+  cardInner: {
+    gap: 10,
   },
   cardContent: {
-    gap: 12,
+    paddingTop: 14,
+    paddingHorizontal: 20,
   },
-  title: {
-    color: '#027146',
+  formTitle: {
+    color: PALETTE.textPrimary,
     fontFamily: 'Nunito-Bold',
+    fontSize: 24,
   },
-  subtitle: {
-    color: '#4b5563',
+  formSubtitle: {
+    color: PALETTE.textSecondary,
     fontFamily: 'Nunito-Regular',
+    marginBottom: 8,
   },
   dotRow: {
     flexDirection: 'row',
@@ -172,18 +228,38 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 999,
-    backgroundColor: '#d1d5db',
+    backgroundColor: PALETTE.divider,
   },
   dotFilled: {
-    backgroundColor: '#027146',
+    backgroundColor: PALETTE.status.success,
   },
   errorText: {
-    color: '#b91c1c',
+    color: PALETTE.primary,
     fontFamily: 'Nunito-Regular',
   },
   demoText: {
-    color: '#6b7280',
+    color: PALETTE.textSecondary,
     textAlign: 'center',
     fontFamily: 'Nunito-Regular',
+    marginTop: 8,
+  },
+  submitButton: {
+    borderWidth: 1,
+    borderColor: PALETTE.buttons.secondary.border,
+    borderRadius: 12,
+    width: '52%',
+    alignSelf: 'center',
+    marginTop: 6,
+  },
+  submitButtonDisabled: {
+    borderColor: PALETTE.disabled.border,
+    opacity: PALETTE.disabled.opacity,
+  },
+  submitButtonContent: {
+    height: 46,
+  },
+  submitButtonLabel: {
+    fontFamily: 'Nunito-Bold',
+    letterSpacing: 0.4,
   },
 });

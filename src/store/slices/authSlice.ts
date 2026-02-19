@@ -9,6 +9,8 @@ type AuthState = {
   phone: string;
   otpInput: string;
   session: AuthSession | null;
+  isLoggedIn: boolean;
+  hydrated: boolean;
   loading: boolean;
   error: string | null;
 };
@@ -18,6 +20,8 @@ const initialState: AuthState = {
   phone: '',
   otpInput: '',
   session: null,
+  isLoggedIn: false,
+  hydrated: false,
   loading: false,
   error: null,
 };
@@ -73,11 +77,30 @@ const authSlice = createSlice({
     setOtpInput(state, action: PayloadAction<string>) {
       state.otpInput = action.payload;
     },
+    restoreAuthState(state, action: PayloadAction<Partial<AuthState>>) {
+      if (typeof action.payload.token === 'string') {
+        state.token = action.payload.token;
+      }
+      if (typeof action.payload.phone === 'string') {
+        state.phone = action.payload.phone;
+      }
+      if (action.payload.session !== undefined) {
+        state.session = action.payload.session ?? null;
+      }
+      if (typeof action.payload.isLoggedIn === 'boolean') {
+        state.isLoggedIn = action.payload.isLoggedIn;
+      }
+    },
+    setAuthHydrated(state, action: PayloadAction<boolean>) {
+      state.hydrated = action.payload;
+    },
     resetToUserLogin(state) {
       state.token = INITIAL_TOKEN;
       state.phone = '';
       state.otpInput = '';
       state.session = null;
+      state.isLoggedIn = false;
+      state.hydrated = true;
       state.error = null;
       state.loading = false;
     },
@@ -91,6 +114,7 @@ const authSlice = createSlice({
       .addCase(requestOtpThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.session = action.payload;
+        state.isLoggedIn = false;
       })
       .addCase(requestOtpThunk.rejected, (state, action) => {
         state.loading = false;
@@ -104,6 +128,7 @@ const authSlice = createSlice({
         state.loading = false;
         if (state.session) {
           state.session.role = action.payload;
+          state.isLoggedIn = true;
         }
       })
       .addCase(verifyOtpThunk.rejected, (state, action) => {
@@ -113,7 +138,13 @@ const authSlice = createSlice({
   },
 });
 
-export const {setToken, setPhone, setOtpInput, resetToUserLogin} =
-  authSlice.actions;
+export const {
+  setToken,
+  setPhone,
+  setOtpInput,
+  restoreAuthState,
+  setAuthHydrated,
+  resetToUserLogin,
+} = authSlice.actions;
 
 export default authSlice.reducer;

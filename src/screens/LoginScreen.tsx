@@ -5,15 +5,16 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Surface, Text} from 'react-native-paper';
+import {Button, Surface, Text} from 'react-native-paper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {FadeSlideIn} from '../components/animations/FadeSlideIn';
 import {FormInput} from '../components/common/FormInput';
-import {PrimaryButton} from '../components/common/PrimaryButton';
+import {PALETTE} from '../constants/palette';
 import type {RootStackParamList} from '../navigation/types';
 import {requestOtpThunk, setPhone} from '../store/slices/authSlice';
 import {useAppDispatch, useAppSelector} from '../store/hooks';
@@ -25,6 +26,7 @@ export function LoginScreen({navigation}: Props) {
   const insets = useSafeAreaInsets();
   const {phone, loading, error} = useAppSelector(state => state.auth);
   const heroScale = useRef(new Animated.Value(1)).current;
+  const formPaddingBottom = 16 + insets.bottom;
 
   useEffect(() => {
     const motion = Animated.loop(
@@ -70,25 +72,27 @@ export function LoginScreen({navigation}: Props) {
             resizeMode="cover"
           />
           <View style={styles.overlay}>
-            <Image
-              source={{uri: 'https://i.imgur.com/8QfQf8N.png'}}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text variant="titleMedium" style={styles.heroTitle}>
-              Continue with mobile OTP
+            <Image source={{uri: 'https://i.imgur.com/8QfQf8N.png'}} style={styles.logo} resizeMode="contain" />
+            <Text variant="titleMedium" style={styles.heroCaption}>
+              Fast, secure sign in
             </Text>
           </View>
         </View>
 
         <FadeSlideIn delay={120} style={styles.formWrap}>
           <Surface style={styles.formCard} elevation={3}>
-            <View style={[styles.formContent, {paddingBottom: 20 }]}>
-              <Text variant="headlineSmall" style={styles.formHeading}>
-                Login
+            <View style={styles.dragHandle} />
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.formContent, {paddingBottom: formPaddingBottom}]}
+              style={styles.formScroll}>
+              <Text variant="headlineSmall" style={styles.formTitle}>
+                Welcome
               </Text>
-              <Text variant="bodySmall" style={styles.helperText}>
-                Enter your mobile number to continue.
+              <Text variant="bodyMedium" style={styles.formSubtitle}>
+                Enter your mobile number to continue
               </Text>
 
               <FormInput
@@ -97,17 +101,31 @@ export function LoginScreen({navigation}: Props) {
                 value={phone}
                 onChangeText={value => dispatch(setPhone(value))}
                 placeholder="+91 98765 43210"
+                outlineColor={error ? PALETTE.input.errorBorder : PALETTE.input.border}
+                activeOutlineColor={PALETTE.input.focusBorder}
+                textColor={PALETTE.input.text}
+                placeholderTextColor={PALETTE.input.placeholder}
+                style={[styles.phoneInput, error ? styles.phoneInputError : null]}
               />
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-              <PrimaryButton
-                label="Send OTP"
+              <Button
+                mode="outlined"
                 onPress={onSendOtp}
                 loading={loading}
+                textColor={
+                  loading
+                    ? PALETTE.buttons.secondary.disabledText
+                    : PALETTE.buttons.secondary.text
+                }
+                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                contentStyle={styles.submitButtonContent}
                 disabled={loading || !phone.trim()}
-              />
-            </View>
+                labelStyle={styles.submitButtonLabel}>
+                Submit
+              </Button>
+            </ScrollView>
           </Surface>
         </FadeSlideIn>
       </View>
@@ -118,70 +136,110 @@ export function LoginScreen({navigation}: Props) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    minHeight: '100%',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: PALETTE.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: PALETTE.surface,
   },
   hero: {
     flex: 1,
     overflow: 'hidden',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    justifyContent: 'flex-end',
   },
   heroImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   formWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: PALETTE.surface,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     overflow: 'hidden',
-    paddingTop: 18,
+    minHeight: '34%',
+    maxHeight: '48%',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(2, 113, 70, 0.28)',
-    justifyContent: 'center',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: PALETTE.overlays.dark,
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 160,
   },
   logo: {
-    width: 230,
-    height: 110,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 16,
-    marginBottom: 12,
+    width: 210,
+    height: 92,
+    borderRadius: 14,
+    marginBottom: 10,
   },
-  heroTitle: {
-    color: '#ffffff',
+  heroCaption: {
+    color: PALETTE.textInverse,
     textAlign: 'center',
-  },
-  formCard: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    backgroundColor: '#ffffff',
-  },
-  formContent: {
-    paddingHorizontal: 18,
-    gap: 10,
-  },
-  formHeading: {
-    color: '#027146',
     fontFamily: 'Nunito-Bold',
   },
-  helperText: {
-    color: '#539c80',
+  formCard: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    backgroundColor: PALETTE.surface,
+    flex: 1,
+  },
+  formScroll: {
+    flex: 1,
+  },
+  dragHandle: {
+    width: 56,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: PALETTE.divider,
+    alignSelf: 'center',
+    marginTop: 10,
+  },
+  formContent: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    gap: 8,
+  },
+  formTitle: {
+    color: PALETTE.textPrimary,
+    fontFamily: 'Nunito-Bold',
+    fontSize: 24,
+  },
+  formSubtitle: {
+    color: PALETTE.textSecondary,
     fontFamily: 'Nunito-Regular',
+    marginBottom: 8,
   },
   errorText: {
-    color: '#b91c1c',
+    color: PALETTE.primary,
     fontFamily: 'Nunito-Regular',
+  },
+  phoneInput: {
+    backgroundColor: PALETTE.input.background,
+  },
+  phoneInputError: {
+    backgroundColor: PALETTE.input.background,
+  },
+  submitButton: {
+    borderWidth: 1,
+    borderColor: PALETTE.buttons.secondary.border,
+    borderRadius: 12,
+    width: '52%',
+    alignSelf: 'center',
+    marginTop: 8,
+  },
+  submitButtonDisabled: {
+    borderColor: PALETTE.disabled.border,
+    opacity: PALETTE.disabled.opacity,
+  },
+  submitButtonContent: {
+    height: 46,
+  },
+  submitButtonLabel: {
+    fontFamily: 'Nunito-Bold',
+    letterSpacing: 0.4,
   },
 });
