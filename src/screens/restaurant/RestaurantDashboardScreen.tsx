@@ -2,14 +2,12 @@ import React, {useEffect} from 'react';
 import {StyleSheet, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Card, Chip, Divider, Text} from 'react-native-paper';
-import {PrimaryButton} from '../components/common/PrimaryButton';
-import {ScreenContainer} from '../components/common/ScreenContainer';
-import type {RootStackParamList} from '../navigation/types';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
-import {resetToUserLogin} from '../store/slices/authSlice';
-import {clearRestaurantState, loadRestaurantDashboardThunk} from '../store/slices/restaurantSlice';
-import {clearUserState} from '../store/slices/userSlice';
-import {formatPrice} from '../utils/format';
+import {PrimaryButton} from '../../components/common/PrimaryButton';
+import {ScreenContainer} from '../../components/common/ScreenContainer';
+import type {RootStackParamList} from '../../navigation/types';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {loadRestaurantDashboardThunk} from '../../store/slices/restaurantSlice';
+import {formatPrice} from '../../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RestaurantDashboard'>;
 
@@ -20,13 +18,6 @@ export function RestaurantDashboardScreen({navigation}: Props) {
   useEffect(() => {
     dispatch(loadRestaurantDashboardThunk());
   }, [dispatch]);
-
-  const onSwitchToUser = () => {
-    dispatch(resetToUserLogin());
-    dispatch(clearUserState());
-    dispatch(clearRestaurantState());
-    navigation.replace('Login');
-  };
 
   return (
     <ScreenContainer>
@@ -81,7 +72,6 @@ export function RestaurantDashboardScreen({navigation}: Props) {
       ) : null}
 
       <PrimaryButton label={loading ? 'Loading...' : 'Refresh Dashboard'} onPress={() => dispatch(loadRestaurantDashboardThunk())} disabled={loading} />
-      <PrimaryButton label="Switch to User Flow" onPress={onSwitchToUser} />
     </ScreenContainer>
   );
 }

@@ -2,16 +2,16 @@ import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'reac
 import {Animated, FlatList, Image, StyleSheet, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
-import {FadeSlideIn} from '../components/animations/FadeSlideIn';
-import {FoodCard, FoodCardSkeleton} from '../components/cards/FoodCard';
-import {PrimaryButton} from '../components/common/PrimaryButton';
-import {ScreenContainer} from '../components/common/ScreenContainer';
-import {PALETTE} from '../constants/palette';
-import type {RootStackParamList} from '../navigation/types';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
-import {addFoodToCart, changeCartItemQuantity} from '../store/slices/userSlice';
-import type {FoodItem} from '../types';
-import {formatPrice, formatSavings} from '../utils/format';
+import {FadeSlideIn} from '../../components/animations/FadeSlideIn';
+import {FoodCard, FoodCardSkeleton} from '../../components/cards/FoodCard';
+import {PrimaryButton} from '../../components/common/PrimaryButton';
+import {ScreenContainer} from '../../components/common/ScreenContainer';
+import {PALETTE} from '../../constants/palette';
+import type {RootStackParamList} from '../../navigation/types';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {addFoodToCart, changeCartItemQuantity} from '../../store/slices/userSlice';
+import type {FoodItem} from '../../types';
+import {formatPrice, formatSavings} from '../../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Foods'>;
 

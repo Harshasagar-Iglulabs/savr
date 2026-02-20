@@ -26,6 +26,7 @@ export function OtpScreen({navigation}: Props) {
   const insets = useSafeAreaInsets();
   const {otpInput, loading, error} = useAppSelector(state => state.auth);
   const formPaddingBottom = 16 + insets.bottom;
+  const isSubmitDisabled = loading || otpInput.trim().length !== 6;
 
   useEffect(() => {
     if (otpInput.trim().length === 6) {
@@ -51,11 +52,11 @@ export function OtpScreen({navigation}: Props) {
     }
 
     if (result.payload === 'restaurant') {
-      navigation.reset({index: 0, routes: [{name: 'RestaurantDashboard'}]});
+      navigation.reset({index: 0, routes: [{name: 'RestaurantHome'}]});
       return;
     }
 
-    navigation.replace('Profile');
+    navigation.reset({index: 0, routes: [{name: 'Profile'}]});
   };
 
   return (
@@ -66,7 +67,7 @@ export function OtpScreen({navigation}: Props) {
       <View style={styles.container}>
         <View style={styles.hero}>
           <Image
-            source={{uri: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&q=80&auto=format&fit=crop'}}
+            source={{uri: 'https://images.unsplash.com/photo-1526367790999-0150786686a2?w=1200&q=80&auto=format&fit=crop'}}
             style={styles.heroImage}
             resizeMode="cover"
           />
@@ -116,13 +117,13 @@ export function OtpScreen({navigation}: Props) {
                   onPress={onVerify}
                   loading={loading}
                   textColor={
-                    loading
+                    isSubmitDisabled
                       ? PALETTE.buttons.secondary.disabledText
                       : PALETTE.buttons.secondary.text
                   }
-                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                  style={[styles.submitButton, isSubmitDisabled && styles.submitButtonDisabled]}
                   contentStyle={styles.submitButtonContent}
-                  disabled={loading || otpInput.trim().length !== 6}
+                  disabled={isSubmitDisabled}
                   labelStyle={styles.submitButtonLabel}>
                   Submit
                 </Button>

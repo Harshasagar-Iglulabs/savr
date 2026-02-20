@@ -35,7 +35,10 @@ export const paperTheme: MD3Theme = {
     surface: PALETTE.surface,
     surfaceVariant: PALETTE.divider,
     outline: PALETTE.divider,
+    outlineVariant: PALETTE.disabled.border,
     onBackground: PALETTE.textPrimary,
     onSurface: PALETTE.textPrimary,
+    onSurfaceDisabled: PALETTE.buttons.secondary.disabledText,
+    surfaceDisabled: PALETTE.disabled.background,
   },
 };

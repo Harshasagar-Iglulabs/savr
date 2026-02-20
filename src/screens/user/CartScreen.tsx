@@ -2,16 +2,16 @@ import React, {useMemo} from 'react';
 import {FlatList, StyleSheet, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Button, Card, Surface, Text} from 'react-native-paper';
-import {PrimaryButton} from '../components/common/PrimaryButton';
-import {ScreenContainer} from '../components/common/ScreenContainer';
-import {PALETTE} from '../constants/palette';
-import type {RootStackParamList} from '../navigation/types';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
+import {PrimaryButton} from '../../components/common/PrimaryButton';
+import {ScreenContainer} from '../../components/common/ScreenContainer';
+import {PALETTE} from '../../constants/palette';
+import type {RootStackParamList} from '../../navigation/types';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {
   changeCartItemQuantity,
   placeCartOrder,
-} from '../store/slices/userSlice';
-import {formatPrice} from '../utils/format';
+} from '../../store/slices/userSlice';
+import {formatPrice} from '../../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Cart'>;
 

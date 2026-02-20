@@ -1,19 +1,24 @@
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {CommonHeaderRight, CommonHeaderTitle} from '../components/common/CommonHeader';
+import {
+  CommonHeaderRight,
+  CommonHeaderTitle,
+  CommonRestaurantHeaderTitle,
+} from '../components/common/CommonHeader';
 import {PALETTE} from '../constants/palette';
-import {CartScreen} from '../screens/CartScreen';
-import {FoodsScreen} from '../screens/FoodsScreen';
+import {CartScreen} from '../screens/user/CartScreen';
+import {FoodsScreen} from '../screens/user/FoodsScreen';
 import {LoginScreen} from '../screens/LoginScreen';
-import {NotificationsScreen} from '../screens/NotificationsScreen';
+import {NotificationsScreen} from '../screens/user/NotificationsScreen';
 import {OtpScreen} from '../screens/OtpScreen';
-import {ProfileScreen} from '../screens/ProfileScreen';
-import {RestaurantAddFoodScreen} from '../screens/RestaurantAddFoodScreen';
-import {RestaurantDashboardScreen} from '../screens/RestaurantDashboardScreen';
-import {RestaurantMenuScreen} from '../screens/RestaurantMenuScreen';
-import {RestaurantProfileScreen} from '../screens/RestaurantProfileScreen';
-import {RestaurantsScreen} from '../screens/RestaurantsScreen';
+import {ProfileScreen} from '../screens/user/ProfileScreen';
+import {RestaurantAddFoodScreen} from '../screens/restaurant/RestaurantAddFoodScreen';
+import {RestaurantDashboardScreen} from '../screens/restaurant/RestaurantDashboardScreen';
+import {RestaurantHomeScreen} from '../screens/restaurant/RestaurantHomeScreen';
+import {RestaurantMenuScreen} from '../screens/restaurant/RestaurantMenuScreen';
+import {RestaurantProfileScreen} from '../screens/restaurant/RestaurantProfileScreen';
+import {RestaurantsScreen} from '../screens/user/RestaurantsScreen';
 import {SplashScreen} from '../screens/SplashScreen';
 import {useAppSelector} from '../store/hooks';
 import type {RootStackParamList} from './types';
@@ -23,9 +28,13 @@ const nonAuthHeaderOptions = {
   headerTitle: CommonHeaderTitle,
   headerRight: CommonHeaderRight,
 };
+const restaurantHeaderOptions = {
+  headerTitle: CommonRestaurantHeaderTitle,
+};
 
 export function AppNavigator() {
-  const {hydrated, session, isLoggedIn} = useAppSelector(state => state.auth);
+  const { session, isLoggedIn} = useAppSelector(state => state.auth);
+  const hydrated = false;
   const {profile} = useAppSelector(state => state.user);
   const isUserAuthenticated = isLoggedIn && session?.role === 'user';
   const isUserProfileComplete = Boolean(
@@ -115,27 +124,34 @@ export function AppNavigator() {
         {hydrated && isRestaurantAuthenticated ? (
           <>
             <Stack.Screen
+              name="RestaurantHome"
+              component={RestaurantHomeScreen}
+              options={{
+                ...restaurantHeaderOptions,
+                gestureEnabled: false,
+              }}
+            />
+            <Stack.Screen
               name="RestaurantDashboard"
               component={RestaurantDashboardScreen}
               options={{
-                ...nonAuthHeaderOptions,
-                gestureEnabled: false,
+                ...restaurantHeaderOptions,
               }}
             />
             <Stack.Screen
               name="RestaurantProfile"
               component={RestaurantProfileScreen}
-              options={nonAuthHeaderOptions}
+              options={restaurantHeaderOptions}
             />
             <Stack.Screen
               name="RestaurantAddFood"
               component={RestaurantAddFoodScreen}
-              options={nonAuthHeaderOptions}
+              options={restaurantHeaderOptions}
             />
             <Stack.Screen
               name="RestaurantMenu"
               component={RestaurantMenuScreen}
-              options={nonAuthHeaderOptions}
+              options={restaurantHeaderOptions}
             />
           </>
         ) : null}

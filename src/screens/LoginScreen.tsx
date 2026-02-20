@@ -10,13 +10,13 @@ import {
   View,
 } from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Surface, Text} from 'react-native-paper';
+import {Button, SegmentedButtons, Surface, Text} from 'react-native-paper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {FadeSlideIn} from '../components/animations/FadeSlideIn';
 import {FormInput} from '../components/common/FormInput';
 import {PALETTE} from '../constants/palette';
 import type {RootStackParamList} from '../navigation/types';
-import {requestOtpThunk, setPhone} from '../store/slices/authSlice';
+import {requestOtpThunk, setPhone, setToken} from '../store/slices/authSlice';
 import {useAppDispatch, useAppSelector} from '../store/hooks';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
@@ -25,8 +25,10 @@ export function LoginScreen({navigation}: Props) {
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const {phone, loading, error} = useAppSelector(state => state.auth);
+  const [loginMode, setLoginMode] = React.useState<'user' | 'restaurant'>('user');
   const heroScale = useRef(new Animated.Value(1)).current;
   const formPaddingBottom = 16 + insets.bottom;
+  const isSubmitDisabled = loading || !phone.trim();
 
   useEffect(() => {
     const motion = Animated.loop(
@@ -51,6 +53,7 @@ export function LoginScreen({navigation}: Props) {
   }, [heroScale]);
 
   const onSendOtp = async () => {
+    dispatch(setToken(loginMode === 'restaurant' ? 'restaurant-demo-token' : 'user-demo-token'));
     const result = await dispatch(requestOtpThunk());
     if (requestOtpThunk.fulfilled.match(result)) {
       navigation.navigate('Otp');
@@ -66,7 +69,7 @@ export function LoginScreen({navigation}: Props) {
         <View style={styles.hero}>
           <Animated.Image
             source={{
-              uri: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=1200&q=80&auto=format&fit=crop',
+              uri: 'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=1200&q=80&auto=format&fit=crop',
             }}
             style={[styles.heroImage, {transform: [{scale: heroScale}]}]}
             resizeMode="cover"
@@ -94,6 +97,34 @@ export function LoginScreen({navigation}: Props) {
               <Text variant="bodyMedium" style={styles.formSubtitle}>
                 Enter your mobile number to continue
               </Text>
+              <SegmentedButtons
+                value={loginMode}
+                onValueChange={value => setLoginMode(value as 'user' | 'restaurant')}
+                buttons={[
+                  {
+                    value: 'user',
+                    label: 'User',
+                    style: styles.roleSegmentButton,
+                    checkedColor: PALETTE.textOnPrimary,
+                    uncheckedColor: PALETTE.primary,
+                  },
+                  {
+                    value: 'restaurant',
+                    label: 'Restaurant',
+                    style: styles.roleSegmentButton,
+                    checkedColor: PALETTE.textOnPrimary,
+                    uncheckedColor: PALETTE.primary,
+                  },
+                ]}
+                style={styles.roleSegment}
+                theme={{
+                  colors: {
+                    secondaryContainer: PALETTE.primary,
+                    onSecondaryContainer: PALETTE.textOnPrimary,
+                    outline: PALETTE.primary,
+                  },
+                }}
+              />
 
               <FormInput
                 label="Phone Number"
@@ -115,13 +146,13 @@ export function LoginScreen({navigation}: Props) {
                 onPress={onSendOtp}
                 loading={loading}
                 textColor={
-                  loading
+                  isSubmitDisabled
                     ? PALETTE.buttons.secondary.disabledText
                     : PALETTE.buttons.secondary.text
                 }
-                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                style={[styles.submitButton, isSubmitDisabled && styles.submitButtonDisabled]}
                 contentStyle={styles.submitButtonContent}
-                disabled={loading || !phone.trim()}
+                disabled={isSubmitDisabled}
                 labelStyle={styles.submitButtonLabel}>
                 Submit
               </Button>
@@ -159,8 +190,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
-    minHeight: '34%',
-    maxHeight: '48%',
+    minHeight: '44%',
+    maxHeight: '60%',
   },
   overlay: {
     ...StyleSheet.absoluteFill,
@@ -213,6 +244,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito-Regular',
     marginBottom: 8,
   },
+  roleSegment: {
+    marginBottom: 8,
+  },
+  roleSegmentButton: {
+    borderColor: PALETTE.primary,
+  },
   errorText: {
     color: PALETTE.primary,
     fontFamily: 'Nunito-Regular',
@@ -227,9 +264,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PALETTE.buttons.secondary.border,
     borderRadius: 12,
-    width: '52%',
+    width: '100%',
     alignSelf: 'center',
-    marginTop: 8,
+    marginTop: 10,
   },
   submitButtonDisabled: {
     borderColor: PALETTE.disabled.border,

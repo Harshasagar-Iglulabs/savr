@@ -2,13 +2,13 @@ import React, {useEffect} from 'react';
 import {FlatList, Image, StyleSheet, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Card, Text} from 'react-native-paper';
-import {PrimaryButton} from '../components/common/PrimaryButton';
-import {ScreenContainer} from '../components/common/ScreenContainer';
-import type {RootStackParamList} from '../navigation/types';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
-import {loadRestaurantDashboardThunk} from '../store/slices/restaurantSlice';
-import {formatPrice, formatSavings} from '../utils/format';
-import {epochToTimeLabel} from '../utils/time';
+import {PrimaryButton} from '../../components/common/PrimaryButton';
+import {ScreenContainer} from '../../components/common/ScreenContainer';
+import type {RootStackParamList} from '../../navigation/types';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {loadRestaurantDashboardThunk} from '../../store/slices/restaurantSlice';
+import {formatPrice, formatSavings} from '../../utils/format';
+import {epochToTimeLabel} from '../../utils/time';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RestaurantMenu'>;
 

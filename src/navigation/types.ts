@@ -12,6 +12,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   Foods: {restaurantId: string};
   Cart: undefined;
+  RestaurantHome: undefined;
   RestaurantDashboard: undefined;
   RestaurantProfile: undefined;
   RestaurantAddFood: undefined;

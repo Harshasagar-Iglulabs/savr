@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import {Button, Card, Text} from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import {PALETTE} from '../../constants/palette';
-import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {updateOrderStatus} from '../../store/slices/userSlice';
-import type {UserOrder} from '../../types';
-import {formatPrice} from '../../utils/format';
+import {PALETTE} from '../../../constants/palette';
+import {useAppDispatch, useAppSelector} from '../../../store/hooks';
+import {updateOrderStatus} from '../../../store/slices/userSlice';
+import type {UserOrder} from '../../../types';
+import {formatPrice} from '../../../utils/format';
 
 type OrdersTabKey = 'upcoming' | 'completed';
 type GroupedOrder = {

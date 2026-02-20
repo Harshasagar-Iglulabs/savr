@@ -33,6 +33,21 @@ export function CommonHeaderTitle() {
   );
 }
 
+export function CommonRestaurantHeaderTitle() {
+  const storeName = useAppSelector(
+    state => state.restaurant.profile?.storeName?.trim() || 'Restaurant',
+  );
+
+  return (
+    <View style={styles.restaurantWrap}>
+      <MaterialIcons name="storefront" size={18} color={PALETTE.textOnPrimary} />
+      <Text numberOfLines={1} style={styles.locationText}>
+        {storeName}
+      </Text>
+    </View>
+  );
+}
+
 export function CommonHeaderRight() {
   const navigation = useNavigation<Nav>();
   const unreadCount = useAppSelector(
@@ -66,6 +81,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito-Bold',
     fontSize: 16,
     maxWidth: 170,
+  },
+  restaurantWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    maxWidth: 240,
+    gap: 6,
   },
   bellBtn: {
     width: 34,

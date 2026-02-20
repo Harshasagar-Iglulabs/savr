@@ -2,13 +2,13 @@ import React, {useEffect} from 'react';
 import {FlatList, StyleSheet, View} from 'react-native';
 import {Button, Card, Text} from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import {ScreenContainer} from '../components/common/ScreenContainer';
-import {PALETTE} from '../constants/palette';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
+import {ScreenContainer} from '../../components/common/ScreenContainer';
+import {PALETTE} from '../../constants/palette';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {
   clearNotifications,
   markAllNotificationsRead,
-} from '../store/slices/notificationSlice';
+} from '../../store/slices/notificationSlice';
 
 function formatTime(epoch: number): string {
   return new Date(epoch).toLocaleString('en-US', {
@@ -22,6 +22,7 @@ function formatTime(epoch: number): string {
 export function NotificationsScreen() {
   const dispatch = useAppDispatch();
   const notifications = useAppSelector(state => state.notifications.items);
+  const isClearDisabled = notifications.length === 0;
 
   useEffect(() => {
     dispatch(markAllNotificationsRead());
@@ -32,10 +33,10 @@ export function NotificationsScreen() {
       <View style={styles.actions}>
         <Button
           mode="outlined"
-          textColor={PALETTE.primary}
-          style={styles.clearButton}
+          textColor={isClearDisabled ? PALETTE.disabled.text : PALETTE.primary}
+          style={[styles.clearButton, isClearDisabled && styles.clearButtonDisabled]}
           onPress={() => dispatch(clearNotifications())}
-          disabled={notifications.length === 0}>
+          disabled={isClearDisabled}>
           Clear All
         </Button>
       </View>
@@ -90,6 +91,9 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     borderColor: PALETTE.primary,
+  },
+  clearButtonDisabled: {
+    borderColor: PALETTE.disabled.border,
   },
   content: {
     paddingTop: 8,

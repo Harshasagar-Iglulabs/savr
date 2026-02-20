@@ -42,7 +42,7 @@ export const PALETTE = {
       text: '#D32F2F',
       pressedBg: '#FDECEA',
       disabledText: '#BDBDBD',
-      disabledBorder: '#E0E0E0',
+      disabledBorder: '#BDBDBD',
     },
     ghost: {
       text: '#D32F2F',
@@ -100,6 +100,6 @@ export const PALETTE = {
     opacity: 0.6,
     background: '#EEEEEE',
     text: '#BDBDBD',
-    border: '#E0E0E0',
+    border: '#BDBDBD',
   },
 } as const;

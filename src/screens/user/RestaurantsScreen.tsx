@@ -9,18 +9,18 @@ import {
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import {LocationSearch} from '../components/common/LocationSearch';
-import {ScreenContainer} from '../components/common/ScreenContainer';
-import {PALETTE} from '../constants/palette';
-import type {RootStackParamList} from '../navigation/types';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
+import {LocationSearch} from '../../components/common/LocationSearch';
+import {ScreenContainer} from '../../components/common/ScreenContainer';
+import {PALETTE} from '../../constants/palette';
+import type {RootStackParamList} from '../../navigation/types';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {
   dismissRatingPrompt,
   fetchNearbyRestaurantsThunk,
   setUserLocation,
   submitOrderRating,
-} from '../store/slices/userSlice';
-import {GOOGLE_PLACES_API_KEY} from '../utils/constants';
+} from '../../store/slices/userSlice';
+import {GOOGLE_PLACES_API_KEY} from '../../utils/constants';
 import {NearYouScreen} from './restaurants/NearYouScreen';
 import {OrdersScreen} from './restaurants/OrdersScreen';
 import {ProfileTabScreen} from './restaurants/ProfileTabScreen';

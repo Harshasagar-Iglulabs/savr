@@ -16,10 +16,10 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {
   RestaurantCard,
   RestaurantCardSkeleton,
-} from '../../components/cards/RestaurantCard';
-import {PALETTE} from '../../constants/palette';
-import {useAppSelector} from '../../store/hooks';
-import type {Restaurant} from '../../types';
+} from '../../../components/cards/RestaurantCard';
+import {PALETTE} from '../../../constants/palette';
+import {useAppSelector} from '../../../store/hooks';
+import type {Restaurant} from '../../../types';
 
 const DEFAULT_MAX_DISTANCE_KM = 10;
 const DEFAULT_MIN_RATING = 0;

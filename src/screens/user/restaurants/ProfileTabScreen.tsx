@@ -1,14 +1,14 @@
 import React, {useMemo, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Text} from 'react-native-paper';
-import {FormInput} from '../../components/common/FormInput';
-import {PALETTE} from '../../constants/palette';
-import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {clearNotifications} from '../../store/slices/notificationSlice';
-import {resetToUserLogin} from '../../store/slices/authSlice';
-import {setProfile} from '../../store/slices/userSlice';
-import {clearUserState} from '../../store/slices/userSlice';
-import {clearAllPersistedUserSessionData} from '../../utils/localStorage';
+import {FormInput} from '../../../components/common/FormInput';
+import {PALETTE} from '../../../constants/palette';
+import {useAppDispatch, useAppSelector} from '../../../store/hooks';
+import {clearNotifications} from '../../../store/slices/notificationSlice';
+import {resetToUserLogin} from '../../../store/slices/authSlice';
+import {setProfile} from '../../../store/slices/userSlice';
+import {clearUserState} from '../../../store/slices/userSlice';
+import {clearAllPersistedUserSessionData} from '../../../utils/localStorage';
 
 export function ProfileTabScreen() {
   const dispatch = useAppDispatch();

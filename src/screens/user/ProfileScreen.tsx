@@ -10,11 +10,11 @@ import {
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Button, Card, Text} from 'react-native-paper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {FormInput} from '../components/common/FormInput';
-import {PALETTE} from '../constants/palette';
-import type {RootStackParamList} from '../navigation/types';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
-import {setProfile} from '../store/slices/userSlice';
+import {FormInput} from '../../components/common/FormInput';
+import {PALETTE} from '../../constants/palette';
+import type {RootStackParamList} from '../../navigation/types';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {setProfile} from '../../store/slices/userSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
@@ -26,6 +26,7 @@ export function ProfileScreen({navigation}: Props) {
 
   const [firstName, setFirstName] = useState(profile.firstName);
   const [lastName, setLastName] = useState(profile.lastName);
+  const isSubmitDisabled = !(firstName.trim() && lastName.trim());
 
   const onContinue = () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -44,7 +45,7 @@ export function ProfileScreen({navigation}: Props) {
       <View style={styles.container}>
         <View style={styles.hero}>
           <Image
-            source={{uri: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80&auto=format&fit=crop'}}
+            source={{uri: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=80&auto=format&fit=crop'}}
             style={styles.heroImage}
             resizeMode="cover"
           />
@@ -77,15 +78,13 @@ export function ProfileScreen({navigation}: Props) {
                   mode="outlined"
                   onPress={onContinue}
                   textColor={
-                    firstName.trim() && lastName.trim()
+                    !isSubmitDisabled
                       ? PALETTE.buttons.secondary.text
                       : PALETTE.buttons.secondary.disabledText
                   }
-                  style={[
-                    styles.submitButton,
-                    !(firstName.trim() && lastName.trim()) && styles.submitButtonDisabled,
-                  ]}
+                  style={[styles.submitButton, isSubmitDisabled && styles.submitButtonDisabled]}
                   contentStyle={styles.submitButtonContent}
+                  disabled={isSubmitDisabled}
                   labelStyle={styles.submitButtonLabel}>
                   Submit
                 </Button>

@@ -1,7 +1,8 @@
 import React, {useEffect, useRef} from 'react';
 import {Animated, Easing, StyleSheet, View} from 'react-native';
-import {ActivityIndicator, Text} from 'react-native-paper';
+import {Text} from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {PALETTE} from '../constants/palette';
 import {useAppDispatch} from '../store/hooks';
 import {restoreAuthState, setAuthHydrated} from '../store/slices/authSlice';
 import {setProfile} from '../store/slices/userSlice';
@@ -143,16 +144,16 @@ export function SplashScreen() {
       <View style={styles.backBlobBottom} />
 
       <Animated.View style={[styles.foodIcon, styles.foodTopLeft, {transform: [{translateY: floatA}]}]}>
-        <MaterialIcons name="ramen-dining" size={32} color="#b6b6b6" />
+        <MaterialIcons name="ramen-dining" size={30} color={PALETTE.textInverse} />
       </Animated.View>
       <Animated.View style={[styles.foodIcon, styles.foodTopRight, {transform: [{translateY: floatB}]}]}>
-        <MaterialIcons name="lunch-dining" size={34} color="#a9a9a9" />
+        <MaterialIcons name="lunch-dining" size={32} color={PALETTE.textInverse} />
       </Animated.View>
-      <Animated.View style={[styles.foodIcon, styles.foodBottomLeft, {transform: [{translateY: floatC}]}]}>
-        <MaterialIcons name="bakery-dining" size={32} color="#bcbcbc" />
+      <Animated.View style={[styles.foodIcon, styles.foodUpperLeft, {transform: [{translateY: floatC}]}]}>
+        <MaterialIcons name="bakery-dining" size={30} color={PALETTE.textInverse} />
       </Animated.View>
-      <Animated.View style={[styles.foodIcon, styles.foodBottomRight, {transform: [{translateY: floatD}]}]}>
-        <MaterialIcons name="icecream" size={30} color="#b0b0b0" />
+      <Animated.View style={[styles.foodIcon, styles.foodUpperRight, {transform: [{translateY: floatD}]}]}>
+        <MaterialIcons name="icecream" size={28} color={PALETTE.textInverse} />
       </Animated.View>
 
       <Animated.View
@@ -164,10 +165,10 @@ export function SplashScreen() {
           },
         ]}>
         <Animated.View style={[styles.logoRing, {transform: [{rotate: ringRotation}]}]}>
-          <MaterialIcons name="circle" size={10} color="#d0d0d0" style={styles.ringDotTop} />
-          <MaterialIcons name="circle" size={10} color="#c4c4c4" style={styles.ringDotRight} />
-          <MaterialIcons name="circle" size={10} color="#d6d6d6" style={styles.ringDotBottom} />
-          <MaterialIcons name="circle" size={10} color="#cfcfcf" style={styles.ringDotLeft} />
+          <MaterialIcons name="circle" size={10} color="#fff3f3" style={styles.ringDotTop} />
+          <MaterialIcons name="circle" size={10} color="#ffdede" style={styles.ringDotRight} />
+          <MaterialIcons name="circle" size={10} color="#ffffff" style={styles.ringDotBottom} />
+          <MaterialIcons name="circle" size={10} color="#ffeaea" style={styles.ringDotLeft} />
         </Animated.View>
         <View style={styles.logoBadge}>
           <Text variant="headlineMedium" style={styles.brand}>
@@ -176,8 +177,6 @@ export function SplashScreen() {
         </View>
         <Text variant="bodyMedium" style={styles.subtitle}>Fast food ordering made simple</Text>
       </Animated.View>
-
-      <ActivityIndicator animating color="#027146" />
     </View>
   );
 }
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: PALETTE.primary,
     paddingHorizontal: 20,
     gap: 16,
   },
@@ -198,7 +197,7 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 999,
-    backgroundColor: '#cde3d9',
+    backgroundColor: '#c62828',
   },
   backBlobBottom: {
     position: 'absolute',
@@ -207,18 +206,19 @@ const styles = StyleSheet.create({
     width: 210,
     height: 210,
     borderRadius: 999,
-    backgroundColor: '#e8e8e8',
+    backgroundColor: '#b71c1c',
   },
   brand: {
-    color: '#027146',
-    fontWeight: '800',
+    color: PALETTE.primary,
+    fontFamily: 'Nunito-Bold',
     textAlign: 'center',
     letterSpacing: 1,
   },
   subtitle: {
     textAlign: 'center',
     marginTop: 8,
-    color: '#4b5563',
+    color: '#ffe1e1',
+    fontFamily: 'Nunito-Regular',
   },
   brandWrap: {
     alignItems: 'center',
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     height: 196,
     borderRadius: 98,
     borderWidth: 1,
-    borderColor: '#e6e6e6',
+    borderColor: 'rgba(255,255,255,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     borderRadius: 78,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#d9d9d9',
+    borderColor: '#ffd1d1',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',
@@ -268,27 +268,29 @@ const styles = StyleSheet.create({
   },
   foodIcon: {
     position: 'absolute',
-    backgroundColor: '#efefef',
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   foodTopLeft: {
-    top: '24%',
-    left: '16%',
+    top: '9%',
+    left: '8%',
   },
   foodTopRight: {
-    top: '24%',
-    right: '16%',
+    top: '10%',
+    right: '8%',
   },
-  foodBottomLeft: {
-    bottom: '28%',
-    left: '18%',
+  foodUpperLeft: {
+    bottom: '14%',
+    left: '10%',
   },
-  foodBottomRight: {
-    bottom: '28%',
-    right: '18%',
+  foodUpperRight: {
+    bottom: '16%',
+    right: '9%',
   },
 });
