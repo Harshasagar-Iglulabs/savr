@@ -33,8 +33,7 @@ const restaurantHeaderOptions = {
 };
 
 export function AppNavigator() {
-  const { session, isLoggedIn} = useAppSelector(state => state.auth);
-  const hydrated = false;
+  const {hydrated, session, isLoggedIn} = useAppSelector(state => state.auth);
   const {profile} = useAppSelector(state => state.user);
   const isUserAuthenticated = isLoggedIn && session?.role === 'user';
   const isUserProfileComplete = Boolean(
