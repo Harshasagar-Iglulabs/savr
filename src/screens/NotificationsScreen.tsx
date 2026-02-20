@@ -1,6 +1,7 @@
 import React, {useEffect} from 'react';
 import {FlatList, StyleSheet, View} from 'react-native';
 import {Button, Card, Text} from 'react-native-paper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {ScreenContainer} from '../components/common/ScreenContainer';
 import {PALETTE} from '../constants/palette';
 import {useAppDispatch, useAppSelector} from '../store/hooks';
@@ -42,15 +43,27 @@ export function NotificationsScreen() {
       <FlatList
         data={notifications}
         keyExtractor={item => item.id}
+        contentContainerStyle={[
+          styles.content,
+          notifications.length === 0 && styles.contentEmpty,
+        ]}
         ListEmptyComponent={
-          <Card mode="outlined" style={styles.emptyCard}>
-            <Card.Content>
-              <Text variant="titleMedium">No notifications yet</Text>
-              <Text variant="bodySmall">New FCM messages will appear here.</Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.emptyWrap}>
+            <View style={styles.emptyIllustration}>
+              <View style={styles.emptyPlate}>
+                <MaterialIcons name="circle" size={74} color={PALETTE.surface} />
+                <MaterialIcons
+                  name="notifications-none"
+                  size={28}
+                  color={PALETTE.primary}
+                  style={styles.centerIcon}
+                />
+              </View>
+            </View>
+            <Text style={styles.emptyTitle}>No notifications yet</Text>
+            <Text style={styles.emptySubText}>New updates and alerts will appear here.</Text>
+          </View>
         }
-        contentContainerStyle={styles.content}
         renderItem={({item}) => (
           <Card mode="contained" style={styles.itemCard}>
             <Card.Content style={styles.itemContent}>
@@ -83,8 +96,50 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     gap: 10,
   },
-  emptyCard: {
-    marginTop: 10,
+  contentEmpty: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  emptyIllustration: {
+    width: 86,
+    height: 86,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyPlate: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: PALETTE.background,
+    borderWidth: 2,
+    borderColor: PALETTE.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  centerIcon: {
+    position: 'absolute',
+  },
+  emptyTitle: {
+    color: PALETTE.textPrimary,
+    fontFamily: 'Nunito-Bold',
+    fontSize: 20,
+    lineHeight: 26,
+    textAlign: 'center',
+  },
+  emptySubText: {
+    color: PALETTE.textSecondary,
+    fontFamily: 'Nunito-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 6,
   },
   itemCard: {
     borderRadius: 14,

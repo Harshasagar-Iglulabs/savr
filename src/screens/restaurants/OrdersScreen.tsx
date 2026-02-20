@@ -226,6 +226,8 @@ export function OrdersScreen() {
     <SectionList
       sections={sections}
       keyExtractor={item => item.restaurantId}
+      contentInsetAdjustmentBehavior="never"
+      automaticallyAdjustContentInsets={false}
       contentContainerStyle={[styles.listContent, !groupedData.length && styles.listContentEmpty]}
       scrollEnabled={groupedData.length > 0}
       stickySectionHeadersEnabled
@@ -304,8 +306,6 @@ export function OrdersScreen() {
                   style={styles.centerDiningIcon}
                 />
               </View>
-              <MaterialIcons name="restaurant" size={28} color={PALETTE.textSecondary} />
-              <MaterialIcons name="restaurant" size={28} color={PALETTE.textSecondary} />
             </View>
             <RNText style={styles.emptyTitle}>
               {activeTab === 'upcoming' ? 'No upcoming orders' : 'No completed orders'}
@@ -325,8 +325,9 @@ export function OrdersScreen() {
 
 const styles = StyleSheet.create({
   listContent: {
-    paddingTop: 8,
+    paddingTop: 0,
     paddingBottom: 12,
+    marginTop: -100
   },
   listContentEmpty: {
     flexGrow: 1,
@@ -456,12 +457,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   emptyIllustration: {
-    width: 164,
+    width: 86,
     height: 86,
     marginBottom: 12,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   emptyPlate: {
     width: 86,

@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from 'react';
-import {FlatList, Pressable, StyleSheet, View} from 'react-native';
+import {FlatList, Pressable, StyleSheet, TouchableWithoutFeedback, View} from 'react-native';
 import Slider from '@react-native-community/slider';
 import {
   Button,
@@ -86,7 +86,7 @@ export function NearYouScreen({onSelectRestaurant, onOpenCart}: Props) {
 
   return (
     <View style={styles.container}>
-      <Surface style={styles.searchCard} elevation={1}>
+      <View style={styles.searchWrap}>
         <View style={styles.searchRow}>
           <TextInput
             mode="outlined"
@@ -113,22 +113,34 @@ export function NearYouScreen({onSelectRestaurant, onOpenCart}: Props) {
             accessibilityLabel="Open sort and filter"
           />
         </View>
-      </Surface>
+      </View>
 
       <FlatList<RestaurantListItem>
         data={listData}
         keyExtractor={item => (typeof item === 'string' ? item : item.id)}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          !loadingNearby && filteredRestaurants.length === 0 && styles.listContentEmpty,
+        ]}
         ListEmptyComponent={
-          <Card mode="outlined" style={styles.emptyCard}>
-            <Card.Content>
-              <Text variant="titleMedium">No restaurants found</Text>
-              <Text variant="bodySmall">
-                Try changing search, location, or filter values.
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.emptyWrap}>
+            <View style={styles.emptyIllustration}>
+              <View style={styles.emptyPlate}>
+                <MaterialIcons name="circle" size={74} color={PALETTE.surface} />
+                <MaterialIcons
+                  name="storefront"
+                  size={28}
+                  color={PALETTE.primary}
+                  style={styles.centerIcon}
+                />
+              </View>
+            </View>
+            <Text style={styles.emptyTitle}>No restaurants found</Text>
+            <Text style={styles.emptySubText}>
+              Try changing search, location, or filter values.
+            </Text>
+          </View>
         }
         renderItem={({item}) =>
           typeof item === 'string' ? (
@@ -156,80 +168,86 @@ export function NearYouScreen({onSelectRestaurant, onOpenCart}: Props) {
           dismissable
           dismissableBackButton
           contentContainerStyle={styles.modalWrap}>
-          <Surface style={styles.modalCard} elevation={3}>
-            <Text variant="titleLarge" style={styles.modalTitle}>
-              Sort & Filter
-            </Text>
-            <Text variant="bodySmall" style={styles.sectionHint}>
-              Tune results for distance and rating.
-            </Text>
+          <TouchableWithoutFeedback onPress={() => setFilterVisible(false)}>
+            <View style={styles.modalBackdrop}>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <Surface style={styles.modalCard} elevation={3}>
+                  <Text variant="titleLarge" style={styles.modalTitle}>
+                    Sort & Filter
+                  </Text>
+                  <Text variant="bodySmall" style={styles.sectionHint}>
+                    Tune results for distance and rating.
+                  </Text>
 
-            <Text variant="titleSmall" style={styles.sectionTitle}>
-              Sort by
-            </Text>
-            <SegmentedButtons
-              value={sortBy}
-              onValueChange={value => setSortBy(value as SortBy)}
-              buttons={[
-                {value: 'distance', label: 'Distance'},
-                {value: 'rating', label: 'Rating'},
-              ]}
-              style={styles.segment}
-            />
+                  <Text variant="titleSmall" style={styles.sectionTitle}>
+                    Sort by
+                  </Text>
+                  <SegmentedButtons
+                    value={sortBy}
+                    onValueChange={value => setSortBy(value as SortBy)}
+                    buttons={[
+                      {value: 'distance', label: 'Distance'},
+                      {value: 'rating', label: 'Rating'},
+                    ]}
+                    style={styles.segment}
+                  />
 
-            <View style={styles.sliderBlock}>
-              <View style={styles.sliderHeader}>
-                <Text variant="titleSmall">Max distance</Text>
-                <Text variant="titleSmall" style={styles.sliderValue}>
-                  {maxDistanceKm.toFixed(1)} km
-                </Text>
-              </View>
-              <Slider
-                value={maxDistanceKm}
-                minimumValue={1}
-                maximumValue={20}
-                step={0.5}
-                minimumTrackTintColor={PALETTE.primary}
-                maximumTrackTintColor={PALETTE.divider}
-                thumbTintColor={PALETTE.primary}
-                onValueChange={setMaxDistanceKm}
-              />
+                  <View style={styles.sliderBlock}>
+                    <View style={styles.sliderHeader}>
+                      <Text variant="titleSmall">Max distance</Text>
+                      <Text variant="titleSmall" style={styles.sliderValue}>
+                        {maxDistanceKm.toFixed(1)} km
+                      </Text>
+                    </View>
+                    <Slider
+                      value={maxDistanceKm}
+                      minimumValue={1}
+                      maximumValue={20}
+                      step={0.5}
+                      minimumTrackTintColor={PALETTE.primary}
+                      maximumTrackTintColor={PALETTE.divider}
+                      thumbTintColor={PALETTE.primary}
+                      onValueChange={setMaxDistanceKm}
+                    />
+                  </View>
+
+                  <View style={styles.sliderBlock}>
+                    <View style={styles.sliderHeader}>
+                      <Text variant="titleSmall">Minimum rating</Text>
+                      <Text variant="titleSmall" style={styles.sliderValue}>
+                        {minRating.toFixed(1)}
+                      </Text>
+                    </View>
+                    <Slider
+                      value={minRating}
+                      minimumValue={0}
+                      maximumValue={5}
+                      step={0.1}
+                      minimumTrackTintColor={PALETTE.primary}
+                      maximumTrackTintColor={PALETTE.divider}
+                      thumbTintColor={PALETTE.primary}
+                      onValueChange={setMinRating}
+                    />
+                  </View>
+
+                  <View style={styles.footerRow}>
+                    <Button
+                      mode="text"
+                      onPress={() => {
+                        setSortBy('distance');
+                        setMaxDistanceKm(DEFAULT_MAX_DISTANCE_KM);
+                        setMinRating(DEFAULT_MIN_RATING);
+                      }}>
+                      Reset
+                    </Button>
+                    <Button mode="contained" onPress={() => setFilterVisible(false)}>
+                      Apply
+                    </Button>
+                  </View>
+                </Surface>
+              </TouchableWithoutFeedback>
             </View>
-
-            <View style={styles.sliderBlock}>
-              <View style={styles.sliderHeader}>
-                <Text variant="titleSmall">Minimum rating</Text>
-                <Text variant="titleSmall" style={styles.sliderValue}>
-                  {minRating.toFixed(1)}
-                </Text>
-              </View>
-              <Slider
-                value={minRating}
-                minimumValue={0}
-                maximumValue={5}
-                step={0.1}
-                minimumTrackTintColor={PALETTE.primary}
-                maximumTrackTintColor={PALETTE.divider}
-                thumbTintColor={PALETTE.primary}
-                onValueChange={setMinRating}
-              />
-            </View>
-
-            <View style={styles.footerRow}>
-              <Button
-                mode="text"
-                onPress={() => {
-                  setSortBy('distance');
-                  setMaxDistanceKm(DEFAULT_MAX_DISTANCE_KM);
-                  setMinRating(DEFAULT_MIN_RATING);
-                }}>
-                Reset
-              </Button>
-              <Button mode="contained" onPress={() => setFilterVisible(false)}>
-                Apply
-              </Button>
-            </View>
-          </Surface>
+          </TouchableWithoutFeedback>
         </Modal>
       </Portal>
     </View>
@@ -240,12 +258,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  searchCard: {
-    borderRadius: 14,
-    padding: 8,
-    backgroundColor: PALETTE.surface,
-    borderWidth: 1,
-    borderColor: PALETTE.lightBorder,
+  searchWrap: {
+    width: '100%',
+    paddingVertical: 2,
   },
   searchRow: {
     flexDirection: 'row',
@@ -265,14 +280,58 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
   },
-  emptyCard: {
-    marginTop: 10,
+  listContentEmpty: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  emptyIllustration: {
+    width: 86,
+    height: 86,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyPlate: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: PALETTE.background,
+    borderWidth: 2,
     borderColor: PALETTE.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  centerIcon: {
+    position: 'absolute',
+  },
+  emptyTitle: {
+    color: PALETTE.textPrimary,
+    fontFamily: 'Nunito-Bold',
+    fontSize: 20,
+    lineHeight: 26,
+    textAlign: 'center',
+  },
+  emptySubText: {
+    color: PALETTE.textSecondary,
+    fontFamily: 'Nunito-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 6,
   },
   modalWrap: {
     marginHorizontal: 14,
-    justifyContent: 'flex-end',
     flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   modalCard: {
     backgroundColor: PALETTE.modal,

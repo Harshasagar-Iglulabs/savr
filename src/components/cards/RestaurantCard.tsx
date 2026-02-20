@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   ratingBadge: {
     position: 'absolute',
     top: 10,
-    left: 10,
+    right: 10,
     backgroundColor: PALETTE.surface,
     borderRadius: 999,
     paddingHorizontal: 8,

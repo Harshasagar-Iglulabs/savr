@@ -1,8 +1,15 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {Pressable, StyleSheet, View} from 'react-native';
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Modal, Portal, Surface, Text, TextInput} from 'react-native-paper';
+import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {LocationSearch} from '../components/common/LocationSearch';
 import {ScreenContainer} from '../components/common/ScreenContainer';
 import {PALETTE} from '../constants/palette';
 import type {RootStackParamList} from '../navigation/types';
@@ -13,6 +20,7 @@ import {
   setUserLocation,
   submitOrderRating,
 } from '../store/slices/userSlice';
+import {GOOGLE_PLACES_API_KEY} from '../utils/constants';
 import {NearYouScreen} from './restaurants/NearYouScreen';
 import {OrdersScreen} from './restaurants/OrdersScreen';
 import {ProfileTabScreen} from './restaurants/ProfileTabScreen';
@@ -49,11 +57,33 @@ export function RestaurantsScreen({navigation, route}: Props) {
   } = useAppSelector(state => state.user);
 
   const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
   const [searchLocation, setSearchLocation] = useState('');
   const [activeTab, setActiveTab] = useState<LandingTab>(
     route.params?.tab === 'orders' ? 'orders' : 'explore',
   );
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [bottomTabWidth, setBottomTabWidth] = useState(0);
+  const bottomTabTranslate = React.useRef(new Animated.Value(4)).current;
+  const hasSelectedLocation =
+    locationGranted || (latitude !== null && longitude !== null);
+  const activeTabIndex = activeTab === 'explore' ? 0 : activeTab === 'orders' ? 1 : 2;
+  const tabSlotWidth = bottomTabWidth > 0 ? bottomTabWidth / 3 : 0;
+  const activeIndicatorWidth = tabSlotWidth > 0 ? tabSlotWidth - 8 : 0;
+
+  useEffect(() => {
+    if (!tabSlotWidth) {
+      return;
+    }
+
+    Animated.spring(bottomTabTranslate, {
+      toValue: activeTabIndex * tabSlotWidth + 4,
+      useNativeDriver: true,
+      stiffness: 220,
+      damping: 22,
+      mass: 0.7,
+    }).start();
+  }, [activeTabIndex, bottomTabTranslate, tabSlotWidth]);
 
   useEffect(() => {
     if (route.params?.tab === 'orders') {
@@ -71,12 +101,13 @@ export function RestaurantsScreen({navigation, route}: Props) {
       return;
     }
 
+    setLocationPromptDismissed(false);
     setLocationModalVisible(true);
     navigation.setParams({openLocationPicker: undefined});
   }, [navigation, route.params?.openLocationPicker]);
 
   useEffect(() => {
-    if (!locationGranted) {
+    if (!hasSelectedLocation && !locationPromptDismissed) {
       setLocationModalVisible(true);
       return;
     }
@@ -84,7 +115,14 @@ export function RestaurantsScreen({navigation, route}: Props) {
     if (restaurants.length === 0 && latitude !== null && longitude !== null) {
       dispatch(fetchNearbyRestaurantsThunk({latitude, longitude}));
     }
-  }, [dispatch, latitude, locationGranted, longitude, restaurants.length]);
+  }, [
+    dispatch,
+    hasSelectedLocation,
+    latitude,
+    locationPromptDismissed,
+    longitude,
+    restaurants.length,
+  ]);
 
   useEffect(() => {
     if (pendingRatingOrderId) {
@@ -105,6 +143,7 @@ export function RestaurantsScreen({navigation, route}: Props) {
     };
 
     dispatch(setUserLocation(current));
+    setLocationPromptDismissed(false);
     await dispatch(
       fetchNearbyRestaurantsThunk({
         latitude: current.latitude,
@@ -127,10 +166,28 @@ export function RestaurantsScreen({navigation, route}: Props) {
         longitude: coords.longitude,
       }),
     );
+    setLocationPromptDismissed(false);
     await dispatch(
       fetchNearbyRestaurantsThunk({
         latitude: coords.latitude,
         longitude: coords.longitude,
+      }),
+    );
+    setLocationModalVisible(false);
+  };
+
+  const applySelectedPlace = async (place: {
+    label: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    setSearchLocation(place.label);
+    dispatch(setUserLocation(place));
+    setLocationPromptDismissed(false);
+    await dispatch(
+      fetchNearbyRestaurantsThunk({
+        latitude: place.latitude,
+        longitude: place.longitude,
       }),
     );
     setLocationModalVisible(false);
@@ -151,9 +208,24 @@ export function RestaurantsScreen({navigation, route}: Props) {
         {activeTab === 'profile' ? <ProfileTabScreen /> : null}
       </View>
 
-      <Surface style={styles.bottomTabWrap} elevation={4}>
+      <Surface
+        style={styles.bottomTabWrap}
+        elevation={4}
+        onLayout={event => setBottomTabWidth(event.nativeEvent.layout.width)}>
+        {activeIndicatorWidth > 0 ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.bottomTabIndicator,
+              {
+                width: activeIndicatorWidth,
+                transform: [{translateX: bottomTabTranslate}],
+              },
+            ]}
+          />
+        ) : null}
         <Pressable
-          style={[styles.bottomTabBtn, activeTab === 'explore' && styles.bottomTabBtnActive]}
+          style={styles.bottomTabBtn}
           onPress={() => setActiveTab('explore')}>
           <View style={styles.bottomTabItem}>
             <MaterialIcons
@@ -172,7 +244,7 @@ export function RestaurantsScreen({navigation, route}: Props) {
         </Pressable>
 
         <Pressable
-          style={[styles.bottomTabBtn, activeTab === 'orders' && styles.bottomTabBtnActive]}
+          style={styles.bottomTabBtn}
           onPress={() => setActiveTab('orders')}>
           <View style={styles.bottomTabItem}>
             <MaterialIcons
@@ -191,7 +263,7 @@ export function RestaurantsScreen({navigation, route}: Props) {
         </Pressable>
 
         <Pressable
-          style={[styles.bottomTabBtn, activeTab === 'profile' && styles.bottomTabBtnActive]}
+          style={styles.bottomTabBtn}
           onPress={() => setActiveTab('profile')}>
           <View style={styles.bottomTabItem}>
             <MaterialIcons
@@ -213,57 +285,95 @@ export function RestaurantsScreen({navigation, route}: Props) {
       <Portal>
         <Modal
           visible={locationModalVisible}
-          onDismiss={() => locationGranted && setLocationModalVisible(false)}
+          onDismiss={() => {
+            setLocationModalVisible(false);
+            setLocationPromptDismissed(true);
+          }}
+          dismissable
+          dismissableBackButton
           contentContainerStyle={styles.modalWrap}>
-          <Surface style={styles.modalCard} elevation={4}>
-            <Text variant="headlineSmall" style={styles.modalTitle}>
-              Choose Location
-            </Text>
-            <Text variant="bodyMedium" style={styles.modalSubtitle}>
-              Search, use current location, or pick from recent locations.
-            </Text>
+          <TouchableWithoutFeedback
+            onPress={() => {
+              setLocationModalVisible(false);
+              setLocationPromptDismissed(true);
+            }}>
+            <View style={styles.modalBackdrop}>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <Surface style={styles.modalCard} elevation={4}>
+                  <View style={styles.modalHandle} />
+                  <View style={styles.modalHeaderRow}>
+                    <View style={styles.modalIconWrap}>
+                      <MaterialIcons name="place" size={18} color={PALETTE.primary} />
+                    </View>
+                    <View style={styles.modalHeaderTextWrap}>
+                      <Text variant="headlineSmall" style={styles.modalTitle}>
+                        Choose Location
+                      </Text>
+                      <Text variant="bodyMedium" style={styles.modalSubtitle}>
+                        Search, use current location, or pick from recent locations.
+                      </Text>
+                    </View>
+                  </View>
 
-            <TextInput
-              mode="outlined"
-              label="Search location"
-              placeholder="Koramangala, Bengaluru"
-              value={searchLocation}
-              onChangeText={setSearchLocation}
-            />
+                  <LocationSearch
+                    value={searchLocation}
+                    onChangeText={setSearchLocation}
+                    onPlaceSelected={applySelectedPlace}
+                    apiKey={GOOGLE_PLACES_API_KEY}
+                    placeholder="Search location"
+                  />
 
-            <View style={styles.modalButtons}>
-              <Button mode="contained-tonal" onPress={useCurrentLocation} disabled={loadingNearby}>
-                Use Current Location
-              </Button>
-              <Button
-                mode="contained"
-                onPress={applySearchedLocation}
-                disabled={loadingNearby || !searchLocation.trim()}>
-                Search & Apply
-              </Button>
+                  <View style={styles.modalButtons}>
+                    <Button
+                      mode="outlined"
+                      onPress={useCurrentLocation}
+                      disabled={loadingNearby}
+                      style={styles.modalButton}
+                      labelStyle={styles.modalButtonLabel}>
+                      Use Current Location
+                    </Button>
+                    <Button
+                      mode="contained"
+                      onPress={applySearchedLocation}
+                      disabled={loadingNearby || !searchLocation.trim()}
+                      style={styles.modalButton}
+                      labelStyle={styles.modalButtonLabel}>
+                      Search & Apply
+                    </Button>
+                  </View>
+
+                  <View style={styles.recentWrap}>
+                    <Text variant="titleSmall" style={styles.recentTitle}>
+                      Recent Locations
+                    </Text>
+                    {recentLocations.map(location => (
+                      <Button
+                        key={location.label}
+                        mode="outlined"
+                        icon={({size, color}) => (
+                          <MaterialIcons name="history" size={size} color={color} />
+                        )}
+                        style={styles.recentLocationBtn}
+                        contentStyle={styles.recentLocationBtnContent}
+                        labelStyle={styles.recentLocationBtnLabel}
+                        onPress={async () => {
+                          dispatch(setUserLocation(location));
+                          await dispatch(
+                            fetchNearbyRestaurantsThunk({
+                              latitude: location.latitude,
+                              longitude: location.longitude,
+                            }),
+                          );
+                          setLocationModalVisible(false);
+                        }}>
+                        {location.label}
+                      </Button>
+                    ))}
+                  </View>
+                </Surface>
+              </TouchableWithoutFeedback>
             </View>
-
-            <View style={styles.recentWrap}>
-              <Text variant="titleSmall">Recent Locations</Text>
-              {recentLocations.map(location => (
-                <Button
-                  key={location.label}
-                  mode="text"
-                  onPress={async () => {
-                    dispatch(setUserLocation(location));
-                    await dispatch(
-                      fetchNearbyRestaurantsThunk({
-                        latitude: location.latitude,
-                        longitude: location.longitude,
-                      }),
-                    );
-                    setLocationModalVisible(false);
-                  }}>
-                  {location.label}
-                </Button>
-              ))}
-            </View>
-          </Surface>
+          </TouchableWithoutFeedback>
         </Modal>
 
         <Modal
@@ -324,6 +434,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingVertical: 4,
     paddingHorizontal: 4,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  bottomTabIndicator: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    borderRadius: 12,
+    backgroundColor: PALETTE.primary,
   },
   bottomTabBtn: {
     flex: 1,
@@ -331,11 +450,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 9,
     borderRadius: 12,
-  },
-  bottomTabBtnActive: {
-    backgroundColor: PALETTE.primary,
-    borderWidth: 1,
-    borderColor: PALETTE.primary,
+    zIndex: 2,
   },
   bottomTabItem: {
     alignItems: 'center',
@@ -350,29 +465,87 @@ const styles = StyleSheet.create({
   },
   modalWrap: {
     marginHorizontal: 14,
-    justifyContent: 'flex-end',
     flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   modalCard: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
-    padding: 16,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    gap: 14,
     backgroundColor: PALETTE.modal,
+    borderWidth: 1,
+    borderColor: PALETTE.lightBorder,
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: PALETTE.divider,
+    marginBottom: 2,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  modalIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: PALETTE.buttons.secondary.pressedBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  modalHeaderTextWrap: {
+    flex: 1,
+    gap: 2,
   },
   modalTitle: {
     color: PALETTE.primary,
+    fontFamily: 'Nunito-Bold',
   },
   modalSubtitle: {
     color: PALETTE.textSecondary,
+  },
+  modalButton: {
+    borderRadius: 10,
+  },
+  modalButtonLabel: {
+    fontFamily: 'Nunito-Bold',
   },
   modalButtons: {
     gap: 8,
   },
   recentWrap: {
-    gap: 4,
+    gap: 8,
+    marginTop: 2,
+  },
+  recentTitle: {
+    color: PALETTE.textPrimary,
+    fontFamily: 'Nunito-Bold',
+  },
+  recentLocationBtn: {
+    borderRadius: 10,
+    borderColor: PALETTE.lightBorder,
+    backgroundColor: PALETTE.surface,
+  },
+  recentLocationBtnContent: {
+    justifyContent: 'flex-start',
+    paddingVertical: 4,
+  },
+  recentLocationBtnLabel: {
+    color: PALETTE.textPrimary,
+    fontFamily: 'Nunito-Regular',
   },
   ratingModalWrap: {
     marginHorizontal: 24,
