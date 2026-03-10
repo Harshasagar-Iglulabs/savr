@@ -50,17 +50,25 @@ export const verifyOtpThunk = createAsyncThunk(
       return rejectWithValue('Missing OTP session.');
     }
 
-    const confirmation = await confirmOtpWithBackend(
-      session.token,
-      session.phone,
-      otpInput,
-      session.otp,
-    );
+    let confirmation: {isValid: boolean; role: UserRole; token: string};
+    try {
+      confirmation = await confirmOtpWithBackend(
+        session.role,
+        session.phone,
+        otpInput,
+        session.requestId ?? '',
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : 'Unable to verify OTP.',
+      );
+    }
+
     if (!confirmation.isValid) {
       return rejectWithValue('Invalid OTP code.');
     }
 
-    return confirmation.role;
+    return {role: confirmation.role, token: confirmation.token};
   },
 );
 
@@ -124,13 +132,20 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(verifyOtpThunk.fulfilled, (state, action: PayloadAction<UserRole>) => {
+      .addCase(
+        verifyOtpThunk.fulfilled,
+        (
+          state,
+          action: PayloadAction<{role: UserRole; token: string}>,
+        ) => {
         state.loading = false;
         if (state.session) {
-          state.session.role = action.payload;
+          state.session.role = action.payload.role;
+          state.session.token = action.payload.token;
           state.isLoggedIn = true;
         }
-      })
+        },
+      )
       .addCase(verifyOtpThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) ?? 'Unable to verify OTP.';

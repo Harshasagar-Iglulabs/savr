@@ -1,125 +1,117 @@
 import type {
+  FoodItem,
   RestaurantMenuItemInput,
   RestaurantMetrics,
   RestaurantProfile,
-  FoodItem,
 } from '../types';
+import {API_ENDPOINTS} from './endpoints';
+import {apiRequest} from './http';
 
-let profileDb: RestaurantProfile = {
-  storeName: 'Savr Signature Kitchen',
-  ownerName: 'Aarav Sharma',
-  phone: '+91 98765 43210',
-  email: 'owner@savr.com',
-  address: '12 Green Street, Bengaluru',
-  cuisine: 'Multi Cuisine',
-  openTimeEpoch: 1739322000000,
-  closeTimeEpoch: 1739372400000,
+type BackendFood = {
+  id?: string;
+  _id?: string;
+  name: string;
+  description: string;
+  actualPrice: number;
+  discountedPrice: number;
+  imageUrl?: string;
+  availableFrom?: number;
+  quantity?: number;
 };
 
-let menuDb: FoodItem[] = [
-  {
-    id: 'm1',
-    name: 'Pesto Pasta',
-    description: 'Basil pesto, parmesan, and roasted tomatoes.',
-    actualPrice: 320,
-    discountedPrice: 275,
-    imageUrl:
-      'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=900&q=80&auto=format&fit=crop',
-    availableFrom: 1739329200000,
-    quantity: 25,
-  },
-  {
-    id: 'm2',
-    name: 'Paneer Tikka Wrap',
-    description: 'Smoky paneer, mint chutney, apnd onions.',
-    actualPrice: 240,
-    discountedPrice: 210,
-    imageUrl:
-      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=900&q=80&auto=format&fit=crop',
-    availableFrom: 1739332800000,
-    quantity: 40,
-  },
-];
-
-const metricsDb: RestaurantMetrics = {
-  todayEarnings: 18650,
-  totalRevenue: 892000,
-  weeklyRevenue: 120450,
-  monthlyRevenue: 402300,
-  averageOrderValue: 412,
-  ordersToday: 46,
-  orderStatus: {
-    pending: 8,
-    completed: 31,
-    cancelled: 2,
-  },
-  revenueChannels: [
-    {label: 'Dine In', amount: 6200, percentage: 33},
-    {label: 'Delivery', amount: 9300, percentage: 50},
-    {label: 'Takeaway', amount: 3150, percentage: 17},
-  ],
-};
-
-function wait(ms: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(() => resolve(), ms);
-  });
+function normalizeFood(item: BackendFood): FoodItem {
+  return {
+    id: item.id ?? item._id ?? '',
+    name: item.name,
+    description: item.description,
+    actualPrice: item.actualPrice,
+    discountedPrice: item.discountedPrice,
+    imageUrl: item.imageUrl,
+    availableFrom: item.availableFrom,
+    quantity: item.quantity,
+  };
 }
 
-export async function fetchRestaurantProfile(): Promise<RestaurantProfile> {
-  await wait(320);
-  return {...profileDb};
+export async function fetchRestaurantProfile(
+  token: string,
+): Promise<RestaurantProfile> {
+  return apiRequest<RestaurantProfile>(
+    API_ENDPOINTS.restaurant.profile,
+    {method: 'GET'},
+    token,
+  );
 }
 
 export async function saveRestaurantProfile(
   profile: RestaurantProfile,
+  token: string,
 ): Promise<RestaurantProfile> {
-  await wait(450);
-  profileDb = {...profile};
-  return {...profileDb};
+  return apiRequest<RestaurantProfile>(
+    API_ENDPOINTS.restaurant.profile,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(profile),
+    },
+    token,
+  );
 }
 
-export async function fetchRestaurantMetrics(): Promise<RestaurantMetrics> {
-  await wait(300);
-  return {...metricsDb};
+export async function fetchRestaurantMetrics(
+  token: string,
+): Promise<RestaurantMetrics> {
+  const data = await apiRequest<{
+    profile: RestaurantProfile;
+    metrics: RestaurantMetrics;
+    menu: BackendFood[];
+  }>(API_ENDPOINTS.restaurant.dashboard, {method: 'GET'}, token);
+  return data.metrics;
 }
 
-export async function fetchRestaurantMenu(): Promise<FoodItem[]> {
-  await wait(300);
-  return [...menuDb];
+export async function fetchRestaurantMenu(token: string): Promise<FoodItem[]> {
+  const data = await apiRequest<BackendFood[]>(
+    API_ENDPOINTS.restaurant.menu,
+    {method: 'GET'},
+    token,
+  );
+  return Array.isArray(data) ? data.map(normalizeFood) : [];
 }
 
-export async function findMenuItemByName(name: string): Promise<FoodItem | null> {
-  await wait(280);
-  const found = menuDb.find(item => item.name.toLowerCase() === name.trim().toLowerCase());
-  return found ? {...found} : null;
+export async function findMenuItemByName(
+  name: string,
+  token: string,
+): Promise<FoodItem | null> {
+  const query = new URLSearchParams({name: name.trim()});
+  const data = await apiRequest<BackendFood[]>(
+    `${API_ENDPOINTS.restaurant.findMenuItemByName}?${query.toString()}`,
+    {method: 'GET'},
+    token,
+  );
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return null;
+  }
+
+  const exact = data.find(
+    item => item.name.toLowerCase() === name.trim().toLowerCase(),
+  );
+  return normalizeFood(exact ?? data[0]);
 }
 
 export async function upsertRestaurantMenuItem(
   payload: RestaurantMenuItemInput,
+  token: string,
 ): Promise<{item: FoodItem; wasExisting: boolean}> {
-  await wait(450);
-
-  const matchIndex = menuDb.findIndex(
-    item => item.name.toLowerCase() === payload.name.trim().toLowerCase(),
+  const data = await apiRequest<{item: BackendFood; wasExisting: boolean}>(
+    API_ENDPOINTS.restaurant.upsertMenuItem,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    token,
   );
 
-  const normalized: FoodItem = {
-    id: matchIndex >= 0 ? menuDb[matchIndex].id : `m${menuDb.length + 1}`,
-    name: payload.name.trim(),
-    description: payload.description.trim(),
-    actualPrice: payload.actualPrice,
-    discountedPrice: payload.discountedPrice,
-    imageUrl: payload.imageUrl.trim(),
-    availableFrom: payload.availableFrom,
-    quantity: payload.quantity,
+  return {
+    item: normalizeFood(data.item),
+    wasExisting: data.wasExisting,
   };
-
-  if (matchIndex >= 0) {
-    menuDb[matchIndex] = normalized;
-    return {item: normalized, wasExisting: true};
-  }
-
-  menuDb = [normalized, ...menuDb];
-  return {item: normalized, wasExisting: false};
 }

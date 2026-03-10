@@ -1,4 +1,6 @@
 import type {AuthSession, UserRole} from '../types';
+import {API_ENDPOINTS} from './endpoints';
+import {apiRequest} from './http';
 
 function decodeBase64Url(input: string): string {
   const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
@@ -42,49 +44,66 @@ function getRoleFromToken(token: string): UserRole {
   return 'user';
 }
 
+let latestDevOtp = '';
+
 export async function requestOtp(
   phone: string,
   token: string,
 ): Promise<AuthSession> {
-  const otp = '123456';
-
-  await new Promise<void>(resolve => {
-    setTimeout(() => resolve(), 700);
+  const role = getRoleFromToken(token);
+  const payload = await apiRequest<{
+    requestId: string;
+    otpExpiresAtEpoch: number;
+    devOtp?: string;
+  }>(API_ENDPOINTS.auth.requestOtp, {
+    method: 'POST',
+    body: JSON.stringify({phone, role}),
   });
 
+  latestDevOtp = payload.devOtp ?? '';
+
   return {
-    token,
-    role: 'user',
+    token: '',
+    role,
     phone,
-    otp,
+    otp: latestDevOtp,
+    requestId: payload.requestId,
   };
 }
 
 export async function autoFillOtp(): Promise<string> {
-  await new Promise<void>(resolve => {
-    setTimeout(() => resolve(), 900);
-  });
-  return '123456';
+  return latestDevOtp;
 }
 
 export async function confirmOtpWithBackend(
-  token: string,
+  role: UserRole,
   phone: string,
   inputOtp: string,
-  expectedOtp: string,
-): Promise<{isValid: boolean; role: UserRole}> {
-  void phone;
-
-  await new Promise<void>(resolve => {
-    setTimeout(() => resolve(), 400);
+  requestId: string,
+): Promise<{isValid: boolean; role: UserRole; token: string}> {
+  if (!phone.trim()) {
+    return {isValid: false, role: 'user', token: ''};
+  }
+  const data = await apiRequest<{
+    token: string;
+    role: UserRole;
+    phone: string;
+    user: {
+      id: string;
+      role: UserRole;
+      firstName: string;
+      lastName: string;
+      restaurantId: string | null;
+    };
+  }>(API_ENDPOINTS.auth.verifyOtp, {
+    method: 'POST',
+    body: JSON.stringify({
+      phone,
+      role,
+      requestId,
+      otp: inputOtp.trim(),
+    }),
   });
 
-  const isValid = inputOtp.trim() === expectedOtp;
-  if (!isValid) {
-    return {isValid: false, role: 'user'};
-  }
-
-  // Simulates backend returning role after OTP confirmation.
-  const role = getRoleFromToken(token) ?? 'user';
-  return {isValid: true, role};
+  return {isValid: true, role: data.role, token: data.token};
 }

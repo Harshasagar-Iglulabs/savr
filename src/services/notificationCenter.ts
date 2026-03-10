@@ -1,5 +1,6 @@
 import {store} from '../store';
 import {pushNotification} from '../store/slices/notificationSlice';
+import {displayLocalNotification} from './pushNotifications';
 
 type FcmLikeMessage = {
   messageId?: string;
@@ -23,4 +24,8 @@ export function ingestFcmMessage(message: FcmLikeMessage) {
       receivedAtEpoch: message.sentTime ?? Date.now(),
     }),
   );
+
+  void displayLocalNotification(title, body, message.data).catch(() => {
+    // Keep in-app notification flow working even if system notification fails.
+  });
 }

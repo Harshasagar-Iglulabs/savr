@@ -13,6 +13,7 @@ import type {
   RestaurantMetrics,
   RestaurantProfile,
 } from '../../types';
+import type {RootState} from '../index';
 
 type RestaurantState = {
   profile: RestaurantProfile | null;
@@ -38,11 +39,17 @@ const initialState: RestaurantState = {
 
 export const loadRestaurantDashboardThunk = createAsyncThunk(
   'restaurant/loadDashboard',
-  async () => {
+  async (_: void, {getState, rejectWithValue}) => {
+    const state = getState() as RootState;
+    const token = state.auth.session?.token;
+    if (!token) {
+      return rejectWithValue('Missing authenticated token.');
+    }
+
     const [profile, metrics, menu] = await Promise.all([
-      fetchRestaurantProfile(),
-      fetchRestaurantMetrics(),
-      fetchRestaurantMenu(),
+      fetchRestaurantProfile(token),
+      fetchRestaurantMetrics(token),
+      fetchRestaurantMenu(token),
     ]);
 
     return {profile, metrics, menu};
@@ -51,22 +58,46 @@ export const loadRestaurantDashboardThunk = createAsyncThunk(
 
 export const saveRestaurantProfileThunk = createAsyncThunk(
   'restaurant/saveProfile',
-  async (payload: RestaurantProfile) => {
-    return saveRestaurantProfile(payload);
+  async (
+    payload: RestaurantProfile,
+    {getState, rejectWithValue},
+  ) => {
+    const state = getState() as RootState;
+    const token = state.auth.session?.token;
+    if (!token) {
+      return rejectWithValue('Missing authenticated token.');
+    }
+
+    return saveRestaurantProfile(payload, token);
   },
 );
 
 export const prefillMenuItemByNameThunk = createAsyncThunk(
   'restaurant/prefillMenuItem',
-  async (name: string) => {
-    return findMenuItemByName(name);
+  async (name: string, {getState, rejectWithValue}) => {
+    const state = getState() as RootState;
+    const token = state.auth.session?.token;
+    if (!token) {
+      return rejectWithValue('Missing authenticated token.');
+    }
+
+    return findMenuItemByName(name, token);
   },
 );
 
 export const upsertMenuItemThunk = createAsyncThunk(
   'restaurant/upsertMenuItem',
-  async (payload: RestaurantMenuItemInput) => {
-    return upsertRestaurantMenuItem(payload);
+  async (
+    payload: RestaurantMenuItemInput,
+    {getState, rejectWithValue},
+  ) => {
+    const state = getState() as RootState;
+    const token = state.auth.session?.token;
+    if (!token) {
+      return rejectWithValue('Missing authenticated token.');
+    }
+
+    return upsertRestaurantMenuItem(payload, token);
   },
 );
 

@@ -12,10 +12,17 @@ import {
   savePersistedAuthState,
   savePersistedProfile,
 } from './utils/localStorage';
+import {initializePushNotifications} from './services/pushNotifications';
 
 function AppBootstrap() {
   const {hydrated, token, phone, session, isLoggedIn} = useAppSelector(state => state.auth);
   const {profile} = useAppSelector(state => state.user);
+
+  useEffect(() => {
+    void initializePushNotifications().catch(() => {
+      // App should still boot if notification permission/channel setup fails.
+    });
+  }, []);
 
   useEffect(() => {
     if (!hydrated) {

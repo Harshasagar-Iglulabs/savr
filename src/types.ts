@@ -5,6 +5,7 @@ export type AuthSession = {
   role: UserRole;
   phone: string;
   otp: string;
+  requestId?: string;
 };
 
 export type UserProfile = {
