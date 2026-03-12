@@ -13,28 +13,41 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {FormInput} from '../../components/common/FormInput';
 import {PALETTE} from '../../constants/palette';
 import type {RootStackParamList} from '../../navigation/types';
+import {updateUserName} from '../../services/userProfile';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {setShouldUpdateProfile} from '../../store/slices/authSlice';
 import {setProfile} from '../../store/slices/userSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
-export function ProfileScreen({navigation}: Props) {
+export function ProfileScreen(_: Props) {
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const profile = useAppSelector(state => state.user.profile);
+  const token = useAppSelector(state => state.auth.session?.token ?? '');
   const formPaddingBottom = 16 + insets.bottom;
 
   const [firstName, setFirstName] = useState(profile.firstName);
   const [lastName, setLastName] = useState(profile.lastName);
   const isSubmitDisabled = !(firstName.trim() && lastName.trim());
 
-  const onContinue = () => {
+  const onContinue = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       return;
     }
 
-    dispatch(setProfile({firstName, lastName}));
-    navigation.reset({index: 0, routes: [{name: 'Restaurants'}]});
+    const payload = {firstName: firstName.trim(), lastName: lastName.trim()};
+    if (token.trim()) {
+      try {
+        const updatedProfile = await updateUserName(payload, token);
+        dispatch(setProfile(updatedProfile));
+      } catch {
+        dispatch(setProfile(payload));
+      }
+    } else {
+      dispatch(setProfile(payload));
+    }
+    dispatch(setShouldUpdateProfile(false));
   };
 
   return (

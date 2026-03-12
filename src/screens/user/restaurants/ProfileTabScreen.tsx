@@ -3,6 +3,7 @@ import {StyleSheet, View} from 'react-native';
 import {Button, Text} from 'react-native-paper';
 import {FormInput} from '../../../components/common/FormInput';
 import {PALETTE} from '../../../constants/palette';
+import {updateUserName} from '../../../services/userProfile';
 import {useAppDispatch, useAppSelector} from '../../../store/hooks';
 import {clearNotifications} from '../../../store/slices/notificationSlice';
 import {resetToUserLogin} from '../../../store/slices/authSlice';
@@ -29,6 +30,8 @@ export function ProfileTabScreen() {
 
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const hasChanges =
     firstName.trim() !== initialFirstName.trim() ||
@@ -36,17 +39,29 @@ export function ProfileTabScreen() {
 
   const canSave = hasChanges && firstName.trim().length > 0 && lastName.trim().length > 0;
 
-  const onSave = () => {
-    if (!canSave) {
+  const onSave = async () => {
+    if (!canSave || saving) {
       return;
     }
 
-    dispatch(
-      setProfile({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-      }),
-    );
+    const nextProfile = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+    };
+
+    setSaving(true);
+    setSaveError('');
+    try {
+      if (!session?.token?.trim()) {
+        throw new Error('Missing authenticated token.');
+      }
+      const updatedProfile = await updateUserName(nextProfile, session.token);
+      dispatch(setProfile(updatedProfile));
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to save profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -80,11 +95,16 @@ export function ProfileTabScreen() {
         <Button
           mode="contained"
           onPress={onSave}
-          disabled={!canSave}
+          disabled={!canSave || saving}
           style={styles.saveBtn}
           contentStyle={styles.saveBtnContent}>
-          Save Update
+          {saving ? 'Saving...' : 'Save Update'}
         </Button>
+      ) : null}
+      {saveError ? (
+        <Text variant="bodySmall" style={styles.errorText}>
+          {saveError}
+        </Text>
       ) : null}
 
       <Button
@@ -135,5 +155,9 @@ const styles = StyleSheet.create({
   },
   logoutBtnLabel: {
     fontFamily: 'Nunito-Bold',
+  },
+  errorText: {
+    color: PALETTE.status.error,
+    marginTop: 6,
   },
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {
+  AdminCreateRestaurantHeaderRight,
   CommonHeaderRight,
   CommonHeaderTitle,
   CommonRestaurantHeaderTitle,
@@ -18,6 +19,7 @@ import {RestaurantDashboardScreen} from '../screens/restaurant/RestaurantDashboa
 import {RestaurantHomeScreen} from '../screens/restaurant/RestaurantHomeScreen';
 import {RestaurantMenuScreen} from '../screens/restaurant/RestaurantMenuScreen';
 import {RestaurantProfileScreen} from '../screens/restaurant/RestaurantProfileScreen';
+import {AdminAddRestaurantScreen} from '../screens/admin/AdminAddRestaurantScreen';
 import {RestaurantsScreen} from '../screens/user/RestaurantsScreen';
 import {SplashScreen} from '../screens/SplashScreen';
 import {useAppSelector} from '../store/hooks';
@@ -30,18 +32,20 @@ const nonAuthHeaderOptions = {
 };
 const restaurantHeaderOptions = {
   headerTitle: CommonRestaurantHeaderTitle,
+  headerRight: AdminCreateRestaurantHeaderRight,
 };
 
 export function AppNavigator() {
-  const {hydrated, session, isLoggedIn} = useAppSelector(state => state.auth);
-  const {profile} = useAppSelector(state => state.user);
-  const isUserAuthenticated = isLoggedIn && session?.role === 'user';
-  const isUserProfileComplete = Boolean(
-    profile.firstName.trim() && profile.lastName.trim(),
+  const {hydrated, session, isLoggedIn, shouldUpdateProfile} = useAppSelector(
+    state => state.auth,
   );
-  const isRestaurantAuthenticated = isLoggedIn && session?.role === 'restaurant';
-  const shouldShowAuthStack =
-    hydrated && !isLoggedIn;
+  const hasValidSessionRole =
+    session?.role === 'user' || session?.role === 'restaurant' || session?.role === 'admin';
+  const isUserAuthenticated = isLoggedIn && session?.role === 'user';
+  const shouldShowUserProfileScreen = isUserAuthenticated && shouldUpdateProfile;
+  const isRestaurantAuthenticated =
+    isLoggedIn && (session?.role === 'restaurant' || session?.role === 'admin');
+  const shouldShowAuthStack = hydrated && (!isLoggedIn || !hasValidSessionRole);
 
   return (
     <NavigationContainer>
@@ -81,7 +85,7 @@ export function AppNavigator() {
           </>
         ) : null}
 
-        {hydrated && isUserAuthenticated && !isUserProfileComplete ? (
+        {hydrated && shouldShowUserProfileScreen ? (
           <Stack.Screen
             name="Profile"
             component={ProfileScreen}
@@ -89,7 +93,7 @@ export function AppNavigator() {
           />
         ) : null}
 
-        {hydrated && isUserAuthenticated && isUserProfileComplete ? (
+        {hydrated && isUserAuthenticated && !shouldShowUserProfileScreen ? (
           <>
             <Stack.Screen
               name="Restaurants"
@@ -150,6 +154,11 @@ export function AppNavigator() {
             <Stack.Screen
               name="RestaurantMenu"
               component={RestaurantMenuScreen}
+              options={restaurantHeaderOptions}
+            />
+            <Stack.Screen
+              name="AdminAddRestaurant"
+              component={AdminAddRestaurantScreen}
               options={restaurantHeaderOptions}
             />
           </>

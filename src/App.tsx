@@ -15,7 +15,8 @@ import {
 import {initializePushNotifications} from './services/pushNotifications';
 
 function AppBootstrap() {
-  const {hydrated, token, phone, session, isLoggedIn} = useAppSelector(state => state.auth);
+  const {hydrated, token, phone, session, shouldUpdateProfile, isLoggedIn} =
+    useAppSelector(state => state.auth);
   const {profile} = useAppSelector(state => state.user);
 
   useEffect(() => {
@@ -33,9 +34,10 @@ function AppBootstrap() {
       token,
       phone,
       session,
+      shouldUpdateProfile,
       isLoggedIn,
     });
-  }, [hydrated, token, phone, session, isLoggedIn]);
+  }, [hydrated, token, phone, session, shouldUpdateProfile, isLoggedIn]);
 
   useEffect(() => {
     if (!hydrated) {

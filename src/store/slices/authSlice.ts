@@ -9,6 +9,7 @@ type AuthState = {
   phone: string;
   otpInput: string;
   session: AuthSession | null;
+  shouldUpdateProfile: boolean;
   isLoggedIn: boolean;
   hydrated: boolean;
   loading: boolean;
@@ -20,6 +21,7 @@ const initialState: AuthState = {
   phone: '',
   otpInput: '',
   session: null,
+  shouldUpdateProfile: false,
   isLoggedIn: false,
   hydrated: false,
   loading: false,
@@ -50,7 +52,13 @@ export const verifyOtpThunk = createAsyncThunk(
       return rejectWithValue('Missing OTP session.');
     }
 
-    let confirmation: {isValid: boolean; role: UserRole; token: string};
+    let confirmation: {
+      isValid: boolean;
+      role: UserRole;
+      token: string;
+      isExistingUser: boolean;
+      shouldUpdateProfile: boolean;
+    };
     try {
       confirmation = await confirmOtpWithBackend(
         session.role,
@@ -68,7 +76,12 @@ export const verifyOtpThunk = createAsyncThunk(
       return rejectWithValue('Invalid OTP code.');
     }
 
-    return {role: confirmation.role, token: confirmation.token};
+    return {
+      role: confirmation.role,
+      token: confirmation.token,
+      shouldUpdateProfile: confirmation.shouldUpdateProfile,
+      isExistingUser: confirmation.isExistingUser,
+    };
   },
 );
 
@@ -95,6 +108,9 @@ const authSlice = createSlice({
       if (action.payload.session !== undefined) {
         state.session = action.payload.session ?? null;
       }
+      if (typeof action.payload.shouldUpdateProfile === 'boolean') {
+        state.shouldUpdateProfile = action.payload.shouldUpdateProfile;
+      }
       if (typeof action.payload.isLoggedIn === 'boolean') {
         state.isLoggedIn = action.payload.isLoggedIn;
       }
@@ -102,11 +118,18 @@ const authSlice = createSlice({
     setAuthHydrated(state, action: PayloadAction<boolean>) {
       state.hydrated = action.payload;
     },
+    setShouldUpdateProfile(state, action: PayloadAction<boolean>) {
+      state.shouldUpdateProfile = action.payload;
+      if (state.session) {
+        state.session.shouldUpdateProfile = action.payload;
+      }
+    },
     resetToUserLogin(state) {
       state.token = INITIAL_TOKEN;
       state.phone = '';
       state.otpInput = '';
       state.session = null;
+      state.shouldUpdateProfile = false;
       state.isLoggedIn = false;
       state.hydrated = true;
       state.error = null;
@@ -122,6 +145,7 @@ const authSlice = createSlice({
       .addCase(requestOtpThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.session = action.payload;
+        state.shouldUpdateProfile = action.payload.shouldUpdateProfile ?? false;
         state.isLoggedIn = false;
       })
       .addCase(requestOtpThunk.rejected, (state, action) => {
@@ -136,14 +160,21 @@ const authSlice = createSlice({
         verifyOtpThunk.fulfilled,
         (
           state,
-          action: PayloadAction<{role: UserRole; token: string}>,
+          action: PayloadAction<{
+            role: UserRole;
+            token: string;
+            shouldUpdateProfile: boolean;
+            isExistingUser: boolean;
+          }>,
         ) => {
         state.loading = false;
         if (state.session) {
           state.session.role = action.payload.role;
           state.session.token = action.payload.token;
+          state.session.shouldUpdateProfile = action.payload.shouldUpdateProfile;
           state.isLoggedIn = true;
         }
+        state.shouldUpdateProfile = action.payload.shouldUpdateProfile;
         },
       )
       .addCase(verifyOtpThunk.rejected, (state, action) => {
@@ -159,6 +190,7 @@ export const {
   setOtpInput,
   restoreAuthState,
   setAuthHydrated,
+  setShouldUpdateProfile,
   resetToUserLogin,
 } = authSlice.actions;
 

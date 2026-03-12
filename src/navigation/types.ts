@@ -17,4 +17,5 @@ export type RootStackParamList = {
   RestaurantProfile: undefined;
   RestaurantAddFood: undefined;
   RestaurantMenu: undefined;
+  AdminAddRestaurant: undefined;
 };

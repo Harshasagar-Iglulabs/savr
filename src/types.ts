@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'restaurant';
+export type UserRole = 'user' | 'restaurant' | 'admin';
 
 export type AuthSession = {
   token: string;
@@ -6,6 +6,8 @@ export type AuthSession = {
   phone: string;
   otp: string;
   requestId?: string;
+  userExists?: boolean;
+  shouldUpdateProfile?: boolean;
 };
 
 export type UserProfile = {

@@ -7,6 +7,7 @@ export type PersistedAuthState = {
   token: string;
   phone: string;
   session: AuthSession | null;
+  shouldUpdateProfile: boolean;
   isLoggedIn: boolean;
 };
 
@@ -47,6 +48,7 @@ export async function loadPersistedAuthState(): Promise<PersistedAuthState | nul
       token: typeof parsed?.token === 'string' ? parsed.token : '',
       phone: typeof parsed?.phone === 'string' ? parsed.phone : '',
       session: parsed?.session && validRole ? parsed.session : null,
+      shouldUpdateProfile: parsed?.shouldUpdateProfile === true,
       isLoggedIn: parsed?.isLoggedIn === true,
     };
   } catch {

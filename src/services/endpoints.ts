@@ -1,4 +1,45 @@
-export const BASE_URL = 'http://localhost:4000/api/v1';
+import {NativeModules, Platform} from 'react-native';
+
+// Set this for physical-device testing if auto-detection cannot resolve your laptop IP.
+const DEV_API_HOST_OVERRIDE = '172.16.3.71';
+function normalizeHost(rawHost: string): string {
+  const trimmed = rawHost.trim();
+  if (!trimmed) {
+    return '';
+  }
+  // Handles values like "192.168.1.12:8081" and "[::1]:8081".
+  return trimmed.replace(/^\[?([^\]]+)\]?(?::\d+)?$/, '$1');
+}
+
+function getMetroHost(): string | null {
+  const serverHost = NativeModules?.PlatformConstants?.ServerHost as
+    | string
+    | undefined;
+  const normalizedServerHost = normalizeHost(serverHost ?? '');
+  if (normalizedServerHost) {
+    return normalizedServerHost;
+  }
+
+  const scriptURL = NativeModules?.SourceCode?.scriptURL as string | undefined;
+  if (!scriptURL) {
+    return null;
+  }
+
+  const match = scriptURL.match(/^[^:]+:\/\/([^/:]+)(?::\d+)?/);
+  const normalizedScriptHost = normalizeHost(match?.[1] ?? '');
+  return normalizedScriptHost || null;
+}
+
+function resolveBaseUrl(): string {
+  const fallbackHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+  const overrideHost = normalizeHost(DEV_API_HOST_OVERRIDE);
+  const host = __DEV__
+    ? overrideHost || getMetroHost() || fallbackHost
+    : fallbackHost;
+  return `http://${host}:4000/api/v1`;
+}
+
+export const BASE_URL = resolveBaseUrl();
 
 export const API_ENDPOINTS = {
   auth: {
@@ -10,6 +51,7 @@ export const API_ENDPOINTS = {
   },
   users: {
     profile: '/users/profile',
+    updateName: '/users/profile',
     nearbyRestaurants: '/users/restaurants/nearby',
     restaurantMenu: (restaurantId: string) => `/users/restaurants/${restaurantId}/menu`,
     orders: '/users/orders',

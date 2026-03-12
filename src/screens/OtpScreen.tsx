@@ -21,7 +21,7 @@ import {DEMO_OTP} from '../utils/constants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Otp'>;
 
-export function OtpScreen({navigation}: Props) {
+export function OtpScreen(_: Props) {
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const {otpInput, loading, error} = useAppSelector(state => state.auth);
@@ -50,13 +50,6 @@ export function OtpScreen({navigation}: Props) {
     if (!verifyOtpThunk.fulfilled.match(result)) {
       return;
     }
-
-    if (result.payload === 'restaurant') {
-      navigation.reset({index: 0, routes: [{name: 'RestaurantHome'}]});
-      return;
-    }
-
-    navigation.reset({index: 0, routes: [{name: 'Profile'}]});
   };
 
   return (

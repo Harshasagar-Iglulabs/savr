@@ -69,6 +69,24 @@ export function CommonHeaderRight() {
   );
 }
 
+export function AdminCreateRestaurantHeaderRight() {
+  const navigation = useNavigation<Nav>();
+  const isAdmin = useAppSelector(state => state.auth.session?.role === 'admin');
+
+  if (!isAdmin) {
+    return null;
+  }
+
+  return (
+    <Pressable
+      onPress={() => navigation.navigate('AdminAddRestaurant')}
+      style={styles.bellBtn}
+      hitSlop={8}>
+      <MaterialIcons name="add-business" size={16} color={PALETTE.textOnPrimary} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   locationWrap: {
     flexDirection: 'row',

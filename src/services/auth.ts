@@ -18,6 +18,9 @@ function getRoleFromToken(token: string): UserRole {
   }
 
   const tokenLower = token.toLowerCase();
+  if (tokenLower.includes('admin')) {
+    return 'admin';
+  }
   if (tokenLower.includes('restaurant')) {
     return 'restaurant';
   }
@@ -33,6 +36,9 @@ function getRoleFromToken(token: string): UserRole {
         type?: string;
       };
       const roleValue = (payload.role ?? payload.type ?? '').toLowerCase();
+      if (roleValue === 'admin') {
+        return 'admin';
+      }
       if (roleValue === 'restaurant') {
         return 'restaurant';
       }
@@ -55,6 +61,8 @@ export async function requestOtp(
     requestId: string;
     otpExpiresAtEpoch: number;
     devOtp?: string;
+    userExists?: boolean;
+    shouldUpdateProfile?: boolean;
   }>(API_ENDPOINTS.auth.requestOtp, {
     method: 'POST',
     body: JSON.stringify({phone, role}),
@@ -68,6 +76,8 @@ export async function requestOtp(
     phone,
     otp: latestDevOtp,
     requestId: payload.requestId,
+    userExists: payload.userExists,
+    shouldUpdateProfile: payload.shouldUpdateProfile,
   };
 }
 
@@ -80,14 +90,28 @@ export async function confirmOtpWithBackend(
   phone: string,
   inputOtp: string,
   requestId: string,
-): Promise<{isValid: boolean; role: UserRole; token: string}> {
+): Promise<{
+  isValid: boolean;
+  role: UserRole;
+  token: string;
+  isExistingUser: boolean;
+  shouldUpdateProfile: boolean;
+}> {
   if (!phone.trim()) {
-    return {isValid: false, role: 'user', token: ''};
+    return {
+      isValid: false,
+      role: 'user',
+      token: '',
+      isExistingUser: false,
+      shouldUpdateProfile: false,
+    };
   }
   const data = await apiRequest<{
     token: string;
-    role: UserRole;
+    role?: UserRole;
     phone: string;
+    isExistingUser?: boolean;
+    shouldUpdateProfile?: boolean;
     user: {
       id: string;
       role: UserRole;
@@ -105,5 +129,20 @@ export async function confirmOtpWithBackend(
     }),
   });
 
-  return {isValid: true, role: data.role, token: data.token};
+  const resolvedRole =
+    data.role === 'restaurant' || data.role === 'user' || data.role === 'admin'
+      ? data.role
+      : data.user?.role === 'restaurant' ||
+        data.user?.role === 'user' ||
+        data.user?.role === 'admin'
+      ? data.user.role
+      : role;
+
+  return {
+    isValid: true,
+    role: resolvedRole,
+    token: data.token,
+    isExistingUser: data.isExistingUser ?? false,
+    shouldUpdateProfile: data.shouldUpdateProfile ?? false,
+  };
 }
