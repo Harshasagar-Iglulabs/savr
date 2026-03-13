@@ -2,27 +2,16 @@ import React from 'react';
 import {Pressable, StyleSheet, View} from 'react-native';
 import {Text} from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import {useNavigation} from '@react-navigation/native';
-import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {PALETTE} from '../../constants/palette';
-import type {RootStackParamList} from '../../navigation/types';
-import {useAppSelector} from '../../store/hooks';
+type CommonHeaderTitleProps = {
+  title: string;
+  onPress: () => void;
+};
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-export function CommonHeaderTitle() {
-  const navigation = useNavigation<Nav>();
-  const {locationGranted, locationLabel} = useAppSelector(state => state.user);
-  const title = locationGranted ? locationLabel : 'Set location';
-
+export function CommonHeaderTitle({title, onPress}: CommonHeaderTitleProps) {
   return (
     <Pressable
-      onPress={() =>
-        navigation.navigate('Restaurants', {
-          tab: 'explore',
-          openLocationPicker: true,
-        })
-      }
+      onPress={onPress}
       style={styles.locationWrap}>
       <MaterialIcons name="location-on" size={18} color={PALETTE.textOnPrimary} />
       <Text numberOfLines={1} style={styles.locationText}>
@@ -33,11 +22,13 @@ export function CommonHeaderTitle() {
   );
 }
 
-export function CommonRestaurantHeaderTitle() {
-  const storeName = useAppSelector(
-    state => state.restaurant.profile?.storeName?.trim() || 'Restaurant',
-  );
+type CommonRestaurantHeaderTitleProps = {
+  storeName: string;
+};
 
+export function CommonRestaurantHeaderTitle({
+  storeName,
+}: CommonRestaurantHeaderTitleProps) {
   return (
     <View style={styles.restaurantWrap}>
       <MaterialIcons name="storefront" size={18} color={PALETTE.textOnPrimary} />
@@ -48,15 +39,15 @@ export function CommonRestaurantHeaderTitle() {
   );
 }
 
-export function CommonHeaderRight() {
-  const navigation = useNavigation<Nav>();
-  const unreadCount = useAppSelector(
-    state => state.notifications.items.filter(item => !item.read).length,
-  );
+type CommonHeaderRightProps = {
+  unreadCount: number;
+  onPress: () => void;
+};
 
+export function CommonHeaderRight({unreadCount, onPress}: CommonHeaderRightProps) {
   return (
     <Pressable
-      onPress={() => navigation.navigate('Notifications')}
+      onPress={onPress}
       style={styles.bellBtn}
       hitSlop={8}>
       <MaterialIcons name="notifications-none" size={16} color={PALETTE.textOnPrimary} />
@@ -69,17 +60,16 @@ export function CommonHeaderRight() {
   );
 }
 
-export function AdminCreateRestaurantHeaderRight() {
-  const navigation = useNavigation<Nav>();
-  const isAdmin = useAppSelector(state => state.auth.session?.role === 'admin');
+type AdminCreateRestaurantHeaderRightProps = {
+  onPress: () => void;
+};
 
-  if (!isAdmin) {
-    return null;
-  }
-
+export function AdminCreateRestaurantHeaderRight({
+  onPress,
+}: AdminCreateRestaurantHeaderRightProps) {
   return (
     <Pressable
-      onPress={() => navigation.navigate('AdminAddRestaurant')}
+      onPress={onPress}
       style={styles.bellBtn}
       hitSlop={8}>
       <MaterialIcons name="add-business" size={16} color={PALETTE.textOnPrimary} />

@@ -2,10 +2,8 @@ import React, {useEffect, useMemo, useState} from 'react';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import Geolocation from '@react-native-community/geolocation';
 import {
   KeyboardAvoidingView,
-  PermissionsAndroid,
   Platform,
   ScrollView,
   StyleSheet,
@@ -21,21 +19,19 @@ import {ScreenContainer} from '../../components/common/ScreenContainer';
 import {PALETTE} from '../../constants/palette';
 import type {RootStackParamList} from '../../navigation/types';
 import {
-  createRestaurantByAdmin,
-  type AdminCreateRestaurantInput,
+  updateRestaurantByAdmin,
+  type AdminUpdateRestaurantInput,
 } from '../../services/admin';
-import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {showGlobalSnackbar} from '../../store/slices/uiSlice';
+import {useAppSelector} from '../../store/hooks';
 import {GOOGLE_PLACES_API_KEY} from '../../utils/constants';
 import {epochToTimeLabel} from '../../utils/time';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'AdminAddRestaurant'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'AdminEditRestaurant'>;
 
 type Draft = {
   storeName: string;
   ownerName: string;
   phone: string;
-  loginPhone: string;
   email: string;
   address: string;
   cuisine: string;
@@ -48,31 +44,27 @@ type Draft = {
 
 type PickerTarget = 'open' | 'close' | null;
 
-const initialDraft: Draft = {
-  storeName: '',
-  ownerName: '',
-  phone: '',
-  loginPhone: '',
-  email: '',
-  address: '',
-  cuisine: '',
-  latitude: '',
-  longitude: '',
-  imageUrl: '',
-  openTimeEpoch: null,
-  closeTimeEpoch: null,
-};
-
-export function AdminAddRestaurantScreen({navigation}: Props) {
-  const dispatch = useAppDispatch();
+export function AdminEditRestaurantScreen({navigation, route}: Props) {
   const role = useAppSelector(state => state.auth.session?.role ?? '');
   const token = useAppSelector(state => state.auth.session?.token ?? '');
-  const [draft, setDraft] = useState<Draft>(initialDraft);
+  const source = route.params.restaurant;
+  const [draft, setDraft] = useState<Draft>({
+    storeName: source.storeName,
+    ownerName: source.ownerName,
+    phone: source.phone,
+    email: source.email,
+    address: source.address,
+    cuisine: source.cuisine,
+    latitude: String(source.latitude || ''),
+    longitude: String(source.longitude || ''),
+    imageUrl: typeof source.imageUrl === 'string' ? source.imageUrl : '',
+    openTimeEpoch: source.openTimeEpoch || null,
+    closeTimeEpoch: source.closeTimeEpoch || null,
+  });
   const [saving, setSaving] = useState(false);
-  const [info, setInfo] = useState('');
+  const [error, setError] = useState('');
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
-  const [locationQuery, setLocationQuery] = useState('');
-  const [locating, setLocating] = useState(false);
+  const [locationQuery, setLocationQuery] = useState(source.address ?? '');
 
   useEffect(() => {
     if (role !== 'admin') {
@@ -151,36 +143,19 @@ export function AdminAddRestaurantScreen({navigation}: Props) {
     const longitude = Number(draft.longitude);
 
     if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
-      dispatch(
-        showGlobalSnackbar({
-          message: 'Latitude and longitude must be valid numbers.',
-          type: 'error',
-        }),
-      );
+      setError('Latitude and longitude must be valid numbers.');
       return;
     }
-
     if (!draft.openTimeEpoch || !draft.closeTimeEpoch) {
-      dispatch(
-        showGlobalSnackbar({
-          message: 'Open and close time are required.',
-          type: 'error',
-        }),
-      );
+      setError('Open and close time are required.');
       return;
     }
-
     if (!token.trim()) {
-      dispatch(
-        showGlobalSnackbar({
-          message: 'Missing authenticated token.',
-          type: 'error',
-        }),
-      );
+      setError('Missing authenticated token.');
       return;
     }
 
-    const payload: AdminCreateRestaurantInput = {
+    const payload: AdminUpdateRestaurantInput = {
       storeName: draft.storeName.trim(),
       ownerName: draft.ownerName.trim(),
       phone: draft.phone.trim(),
@@ -191,103 +166,18 @@ export function AdminAddRestaurantScreen({navigation}: Props) {
       longitude,
       openTimeEpoch: draft.openTimeEpoch,
       closeTimeEpoch: draft.closeTimeEpoch,
-      imageUrl: draft.imageUrl.trim() ? draft.imageUrl.trim() : undefined,
-      loginPhone: draft.loginPhone.trim() ? draft.loginPhone.trim() : undefined,
+      imageUrl: draft.imageUrl.trim() ? draft.imageUrl.trim() : null,
     };
 
     setSaving(true);
-    setInfo('');
+    setError('');
     try {
-      await createRestaurantByAdmin(payload, token);
-      setInfo('Restaurant created successfully.');
-      setDraft(initialDraft);
+      await updateRestaurantByAdmin(source.id, payload, token);
       navigation.goBack();
     } catch (err) {
-      dispatch(
-        showGlobalSnackbar({
-          message: err instanceof Error ? err.message : String(err),
-          type: 'error',
-        }),
-      );
+      setError(err instanceof Error ? err.message : 'Unable to update restaurant.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const onUseCurrentLocation = async () => {
-    if (locating) {
-      return;
-    }
-
-    if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      );
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-        dispatch(
-          showGlobalSnackbar({
-            message: 'Location permission denied.',
-            type: 'error',
-          }),
-        );
-        return;
-      }
-    }
-
-    setLocating(true);
-    const getCurrentPosition = (
-      options: {
-        enableHighAccuracy: boolean;
-        timeout: number;
-        maximumAge: number;
-      },
-    ) =>
-      new Promise<{
-        latitude: number;
-        longitude: number;
-      }>((resolve, reject) => {
-        Geolocation.getCurrentPosition(
-          position => {
-            resolve({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          },
-          reject,
-          options,
-        );
-      });
-
-    try {
-      // First try GPS (accurate but can time out indoors), then fall back.
-      let coordinates: {latitude: number; longitude: number};
-      try {
-        coordinates = await getCurrentPosition({
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 10000,
-        });
-      } catch {
-        coordinates = await getCurrentPosition({
-          enableHighAccuracy: false,
-          timeout: 25000,
-          maximumAge: 120000,
-        });
-      }
-
-      setDraft(prev => ({
-        ...prev,
-        latitude: coordinates.latitude.toFixed(6),
-        longitude: coordinates.longitude.toFixed(6),
-      }));
-    } catch (geoError) {
-      const message =
-        geoError instanceof Error
-          ? geoError.message
-          : 'Unable to get current location. Please check GPS and try again.';
-      dispatch(showGlobalSnackbar({message, type: 'error'}));
-    } finally {
-      setLocating(false);
     }
   };
 
@@ -303,10 +193,10 @@ export function AdminAddRestaurantScreen({navigation}: Props) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.formContent}>
           <Text variant="headlineSmall" style={styles.title}>
-            Add Restaurant
+            Edit Restaurant
           </Text>
           <Text variant="bodySmall" style={styles.subtitle}>
-            Add details and set open/close time with date-time picker.
+            Update restaurant details and timings.
           </Text>
 
           <FormInput
@@ -324,12 +214,6 @@ export function AdminAddRestaurantScreen({navigation}: Props) {
             value={draft.phone}
             keyboardType="phone-pad"
             onChangeText={value => setDraft(prev => ({...prev, phone: value}))}
-          />
-          <FormInput
-            label="Login Phone (Optional)"
-            value={draft.loginPhone}
-            keyboardType="phone-pad"
-            onChangeText={value => setDraft(prev => ({...prev, loginPhone: value}))}
           />
           <FormInput
             label="Email"
@@ -350,17 +234,11 @@ export function AdminAddRestaurantScreen({navigation}: Props) {
             onPlaceSelected={place => {
               setDraft(prev => ({
                 ...prev,
-                address: prev.address.trim() ? prev.address : place.label,
+                address: place.label,
                 latitude: String(place.latitude),
                 longitude: String(place.longitude),
               }));
             }}
-          />
-          <PrimaryButton
-            label={locating ? 'Getting Current Location...' : 'Use Current Location'}
-            onPress={onUseCurrentLocation}
-            disabled={locating}
-            loading={locating}
           />
           <FormInput
             label="Cuisine"
@@ -368,7 +246,7 @@ export function AdminAddRestaurantScreen({navigation}: Props) {
             onChangeText={value => setDraft(prev => ({...prev, cuisine: value}))}
           />
           <FormInput
-            label="Image URL (Optional)"
+            label="Image URL (Blank will clear)"
             value={draft.imageUrl}
             onChangeText={value => setDraft(prev => ({...prev, imageUrl: value}))}
           />
@@ -411,10 +289,10 @@ export function AdminAddRestaurantScreen({navigation}: Props) {
             onPress={() => onOpenDateTimePicker('close')}
           />
 
-          {info ? <Text style={styles.infoText}>{info}</Text> : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <PrimaryButton
-            label="Create Restaurant"
+            label="Save Changes"
             onPress={onSubmit}
             disabled={!canSubmit || saving}
             loading={saving}
@@ -464,8 +342,8 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  infoText: {
-    color: PALETTE.status.success,
+  errorText: {
+    color: PALETTE.status.error,
     fontFamily: 'Nunito-Regular',
   },
 });

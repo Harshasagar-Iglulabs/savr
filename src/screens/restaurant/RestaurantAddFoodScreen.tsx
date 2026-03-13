@@ -18,6 +18,7 @@ import {
   setPrefillItem,
   upsertMenuItemThunk,
 } from '../../store/slices/restaurantSlice';
+import {showGlobalSnackbar} from '../../store/slices/uiSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RestaurantAddFood'>;
 
@@ -67,6 +68,12 @@ export function RestaurantAddFoodScreen({navigation}: Props) {
       quantity: String(prefillItem.quantity ?? ''),
     });
   }, [prefillItem]);
+
+  useEffect(() => {
+    if (error) {
+      dispatch(showGlobalSnackbar({message: error, type: 'error'}));
+    }
+  }, [dispatch, error]);
 
   const availableFromLabel = draft.availableFromEpoch
     ? new Date(draft.availableFromEpoch).toLocaleString([], {
@@ -243,7 +250,6 @@ export function RestaurantAddFoodScreen({navigation}: Props) {
       </View>
 
       {info ? <Text style={styles.infoText}>{info}</Text> : null}
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <PrimaryButton label="Save Food Item" onPress={onSave} loading={saving} disabled={saving} />
 
@@ -295,10 +301,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     color: PALETTE.status.success,
-    fontFamily: 'Nunito-Regular',
-  },
-  errorText: {
-    color: PALETTE.status.error,
     fontFamily: 'Nunito-Regular',
   },
 });

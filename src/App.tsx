@@ -3,11 +3,13 @@ import {StatusBar} from 'react-native';
 import {Provider as ReduxProvider} from 'react-redux';
 import {PaperProvider} from 'react-native-paper';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {GlobalSnackbar} from './components/common/GlobalSnackbar';
 import {PALETTE} from './constants/palette';
 import {AppNavigator} from './navigation/AppNavigator';
 import {useAppSelector} from './store/hooks';
 import {store} from './store';
 import {paperTheme} from './theme/paperTheme';
+import {subscribeAuthFcmTokenSync, syncCurrentDeviceFcmToken} from './services/auth';
 import {
   savePersistedAuthState,
   savePersistedProfile,
@@ -47,7 +49,32 @@ function AppBootstrap() {
     void savePersistedProfile(profile);
   }, [hydrated, profile]);
 
-  return <AppNavigator />;
+  useEffect(() => {
+    const authToken = session?.token ?? token;
+    if (!hydrated || !isLoggedIn || !authToken.trim()) {
+      return;
+    }
+
+    void syncCurrentDeviceFcmToken(authToken).catch(() => {
+      // Keep app flow running if FCM token sync fails.
+    });
+
+    const unsubscribe = subscribeAuthFcmTokenSync(() => {
+      const auth = store.getState().auth;
+      return (auth.session?.token ?? auth.token ?? '').trim();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [hydrated, isLoggedIn, session?.token, token]);
+
+  return (
+    <>
+      <AppNavigator />
+      <GlobalSnackbar />
+    </>
+  );
 }
 
 export default function SavrApp() {

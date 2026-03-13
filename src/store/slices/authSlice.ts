@@ -99,20 +99,34 @@ const authSlice = createSlice({
       state.otpInput = action.payload;
     },
     restoreAuthState(state, action: PayloadAction<Partial<AuthState>>) {
-      if (typeof action.payload.token === 'string') {
-        state.token = action.payload.token;
+      const persistedToken =
+        typeof action.payload.token === 'string'
+          ? action.payload.token.trim()
+          : '';
+      const persistedSessionToken =
+        typeof action.payload.session?.token === 'string'
+          ? action.payload.session.token.trim()
+          : '';
+      const normalizedToken = persistedSessionToken || persistedToken;
+      if (normalizedToken) {
+        state.token = normalizedToken;
       }
       if (typeof action.payload.phone === 'string') {
         state.phone = action.payload.phone;
       }
       if (action.payload.session !== undefined) {
-        state.session = action.payload.session ?? null;
+        state.session = action.payload.session
+          ? {
+              ...action.payload.session,
+              token: normalizedToken,
+            }
+          : null;
       }
       if (typeof action.payload.shouldUpdateProfile === 'boolean') {
         state.shouldUpdateProfile = action.payload.shouldUpdateProfile;
       }
       if (typeof action.payload.isLoggedIn === 'boolean') {
-        state.isLoggedIn = action.payload.isLoggedIn;
+        state.isLoggedIn = action.payload.isLoggedIn && Boolean(normalizedToken);
       }
     },
     setAuthHydrated(state, action: PayloadAction<boolean>) {
@@ -168,6 +182,7 @@ const authSlice = createSlice({
           }>,
         ) => {
         state.loading = false;
+        state.token = action.payload.token;
         if (state.session) {
           state.session.role = action.payload.role;
           state.session.token = action.payload.token;

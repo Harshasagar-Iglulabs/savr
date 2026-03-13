@@ -41,13 +41,25 @@ export async function loadPersistedAuthState(): Promise<PersistedAuthState | nul
       return null;
     }
     const parsed = JSON.parse(raw) as PersistedAuthState;
+    const persistedToken =
+      typeof parsed?.token === 'string' ? parsed.token.trim() : '';
+    const sessionToken =
+      typeof parsed?.session?.token === 'string' ? parsed.session.token.trim() : '';
+    const normalizedToken = sessionToken || persistedToken;
     const role = parsed?.session?.role;
-    const validRole = role === 'user' || role === 'restaurant';
+    const validRole = role === 'user' || role === 'restaurant' || role === 'admin';
+    const normalizedSession =
+      parsed?.session && validRole
+        ? {
+            ...parsed.session,
+            token: normalizedToken,
+          }
+        : null;
 
     return {
-      token: typeof parsed?.token === 'string' ? parsed.token : '',
+      token: normalizedToken,
       phone: typeof parsed?.phone === 'string' ? parsed.phone : '',
-      session: parsed?.session && validRole ? parsed.session : null,
+      session: normalizedSession,
       shouldUpdateProfile: parsed?.shouldUpdateProfile === true,
       isLoggedIn: parsed?.isLoggedIn === true,
     };
@@ -62,7 +74,19 @@ export async function savePersistedAuthState(payload: PersistedAuthState): Promi
     return;
   }
   try {
-    await storage.setItem(AUTH_STATE_KEY, JSON.stringify(payload));
+    const normalizedToken = payload.session?.token?.trim() || payload.token.trim();
+    const normalizedPayload: PersistedAuthState = {
+      ...payload,
+      token: normalizedToken,
+      session: payload.session
+        ? {
+            ...payload.session,
+            token: normalizedToken,
+          }
+        : null,
+    };
+
+    await storage.setItem(AUTH_STATE_KEY, JSON.stringify(normalizedPayload));
   } catch {
     // Ignore local storage failures and keep app flow running.
   }

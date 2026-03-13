@@ -45,6 +45,7 @@ export const API_ENDPOINTS = {
   auth: {
     requestOtp: '/auth/request-otp',
     verifyOtp: '/auth/verify-otp',
+    fcmToken: '/auth/fcm-token',
     refresh: '/auth/refresh',
     logout: '/auth/logout',
     me: '/auth/me',
@@ -76,6 +77,7 @@ export const API_ENDPOINTS = {
     users: '/admin/users',
     userStatus: (userId: string) => `/admin/users/${userId}/status`,
     restaurants: '/admin/restaurants',
+    restaurantById: (restaurantId: string) => `/admin/restaurants/${restaurantId}`,
     restaurantStatus: (restaurantId: string) =>
       `/admin/restaurants/${restaurantId}/status`,
     orders: '/admin/orders',

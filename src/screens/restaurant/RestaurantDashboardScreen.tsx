@@ -7,6 +7,7 @@ import {ScreenContainer} from '../../components/common/ScreenContainer';
 import type {RootStackParamList} from '../../navigation/types';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {loadRestaurantDashboardThunk} from '../../store/slices/restaurantSlice';
+import {showGlobalSnackbar} from '../../store/slices/uiSlice';
 import {formatPrice} from '../../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RestaurantDashboard'>;
@@ -19,6 +20,12 @@ export function RestaurantDashboardScreen({navigation}: Props) {
     dispatch(loadRestaurantDashboardThunk());
   }, [dispatch]);
 
+  useEffect(() => {
+    if (error) {
+      dispatch(showGlobalSnackbar({message: error, type: 'error'}));
+    }
+  }, [dispatch, error]);
+
   return (
     <ScreenContainer>
       <Text variant="headlineSmall">{profile?.storeName ?? 'Restaurant Dashboard'}</Text>
@@ -29,8 +36,6 @@ export function RestaurantDashboardScreen({navigation}: Props) {
         <PrimaryButton label="Add Food Item" onPress={() => navigation.navigate('RestaurantAddFood')} />
         <PrimaryButton label="View Menu" onPress={() => navigation.navigate('RestaurantMenu')} />
       </View>
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       {metrics ? (
         <>
@@ -90,8 +95,5 @@ const styles = StyleSheet.create({
   },
   divider: {
     marginVertical: 6,
-  },
-  errorText: {
-    color: '#b91c1c',
   },
 });

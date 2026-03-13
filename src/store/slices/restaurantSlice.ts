@@ -37,6 +37,19 @@ const initialState: RestaurantState = {
   info: null,
 };
 
+function getErrorMessage(action: {
+  payload?: unknown;
+  error?: {message?: string};
+}): string | null {
+  if (typeof action.payload === 'string' && action.payload.trim()) {
+    return action.payload;
+  }
+  if (typeof action.error?.message === 'string' && action.error.message.trim()) {
+    return action.error.message;
+  }
+  return null;
+}
+
 export const loadRestaurantDashboardThunk = createAsyncThunk(
   'restaurant/loadDashboard',
   async (_: void, {getState, rejectWithValue}) => {
@@ -135,9 +148,9 @@ const restaurantSlice = createSlice({
         state.metrics = action.payload.metrics;
         state.menu = action.payload.menu;
       })
-      .addCase(loadRestaurantDashboardThunk.rejected, state => {
+      .addCase(loadRestaurantDashboardThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = 'Unable to load restaurant dashboard.';
+        state.error = getErrorMessage(action);
       })
       .addCase(saveRestaurantProfileThunk.pending, state => {
         state.saving = true;
@@ -149,9 +162,9 @@ const restaurantSlice = createSlice({
         state.profile = action.payload;
         state.info = 'Profile updated successfully.';
       })
-      .addCase(saveRestaurantProfileThunk.rejected, state => {
+      .addCase(saveRestaurantProfileThunk.rejected, (state, action) => {
         state.saving = false;
-        state.error = 'Unable to save restaurant profile.';
+        state.error = getErrorMessage(action);
       })
       .addCase(prefillMenuItemByNameThunk.pending, state => {
         state.error = null;
@@ -163,8 +176,8 @@ const restaurantSlice = createSlice({
           ? 'Item found in DB. Fields prefilled.'
           : 'No previous item found with that name.';
       })
-      .addCase(prefillMenuItemByNameThunk.rejected, state => {
-        state.error = 'Unable to fetch existing item details.';
+      .addCase(prefillMenuItemByNameThunk.rejected, (state, action) => {
+        state.error = getErrorMessage(action);
       })
       .addCase(upsertMenuItemThunk.pending, state => {
         state.saving = true;
@@ -184,9 +197,9 @@ const restaurantSlice = createSlice({
           ? 'Item already existed. Updated with latest values.'
           : 'New item added to menu.';
       })
-      .addCase(upsertMenuItemThunk.rejected, state => {
+      .addCase(upsertMenuItemThunk.rejected, (state, action) => {
         state.saving = false;
-        state.error = 'Unable to save menu item.';
+        state.error = getErrorMessage(action);
       });
   },
 });

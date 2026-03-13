@@ -14,7 +14,7 @@ type BackendFood = {
   description: string;
   actualPrice: number;
   discountedPrice: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
   availableFrom?: number;
   quantity?: number;
 };
@@ -26,9 +26,59 @@ function normalizeFood(item: BackendFood): FoodItem {
     description: item.description,
     actualPrice: item.actualPrice,
     discountedPrice: item.discountedPrice,
-    imageUrl: item.imageUrl,
+    imageUrl: item.imageUrl ?? undefined,
     availableFrom: item.availableFrom,
     quantity: item.quantity,
+  };
+}
+
+type BackendRestaurantOrderItem = {
+  foodId: string;
+  name: string;
+  unitPrice: number;
+  quantity: number;
+};
+
+type BackendRestaurantOrder = {
+  _id?: string;
+  id?: string;
+  userId: string;
+  restaurantId: string;
+  restaurantName: string;
+  status: 'placed' | 'completed';
+  items: BackendRestaurantOrderItem[];
+  totalAmount: number;
+  orderedAtEpoch: number;
+  completedAtEpoch?: number | null;
+  rating?: number | null;
+};
+
+export type RestaurantPanelOrder = {
+  id: string;
+  customerName: string;
+  status: 'placed' | 'completed';
+  orderedAtEpoch: number;
+  completedAtEpoch?: number;
+  totalAmount: number;
+  items: Array<{id: string; name: string; quantity: number}>;
+};
+
+function normalizeRestaurantOrder(order: BackendRestaurantOrder): RestaurantPanelOrder {
+  return {
+    id: order.id ?? order._id ?? '',
+    // user profile endpoint is not currently used here; keep a neutral label.
+    customerName: 'Customer',
+    status: order.status,
+    orderedAtEpoch: order.orderedAtEpoch,
+    completedAtEpoch: order.completedAtEpoch ?? undefined,
+    totalAmount: order.totalAmount,
+    items: Array.isArray(order.items)
+      ? order.items.map(entry => ({
+          id: entry.foodId,
+          name: entry.name,
+          quantity: entry.quantity,
+        }))
+      : [],
   };
 }
 
@@ -114,4 +164,39 @@ export async function upsertRestaurantMenuItem(
     item: normalizeFood(data.item),
     wasExisting: data.wasExisting,
   };
+}
+
+export async function fetchRestaurantOrders(
+  token: string,
+  status?: 'placed' | 'completed',
+): Promise<RestaurantPanelOrder[]> {
+  const query = new URLSearchParams();
+  if (status) {
+    query.set('status', status);
+  }
+  const endpoint = query.toString()
+    ? `${API_ENDPOINTS.restaurant.orders}?${query.toString()}`
+    : API_ENDPOINTS.restaurant.orders;
+
+  const data = await apiRequest<BackendRestaurantOrder[]>(
+    endpoint,
+    {method: 'GET'},
+    token,
+  );
+
+  return Array.isArray(data)
+    ? data.map(normalizeRestaurantOrder).filter(order => order.id)
+    : [];
+}
+
+export async function completeRestaurantOrder(
+  orderId: string,
+  token: string,
+): Promise<RestaurantPanelOrder> {
+  const data = await apiRequest<BackendRestaurantOrder>(
+    API_ENDPOINTS.restaurant.completeOrder(orderId),
+    {method: 'PATCH'},
+    token,
+  );
+  return normalizeRestaurantOrder(data);
 }

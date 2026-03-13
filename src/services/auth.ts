@@ -1,6 +1,7 @@
 import type {AuthSession, UserRole} from '../types';
 import {API_ENDPOINTS} from './endpoints';
 import {apiRequest} from './http';
+import {getCurrentFcmToken, subscribeToFcmTokenRefresh} from './pushNotifications';
 
 function decodeBase64Url(input: string): string {
   const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
@@ -106,6 +107,7 @@ export async function confirmOtpWithBackend(
       shouldUpdateProfile: false,
     };
   }
+  const fcmToken = await getCurrentFcmToken();
   const data = await apiRequest<{
     token: string;
     role?: UserRole;
@@ -126,8 +128,15 @@ export async function confirmOtpWithBackend(
       role,
       requestId,
       otp: inputOtp.trim(),
+      ...(fcmToken ? {fcmToken} : {}),
     }),
   });
+
+  if (fcmToken && data.token) {
+    await sendFcmTokenToBackend(data.token, fcmToken).catch(() => {
+      // Login should not fail if FCM sync fails.
+    });
+  }
 
   const resolvedRole =
     data.role === 'restaurant' || data.role === 'user' || data.role === 'admin'
@@ -145,4 +154,47 @@ export async function confirmOtpWithBackend(
     isExistingUser: data.isExistingUser ?? false,
     shouldUpdateProfile: data.shouldUpdateProfile ?? false,
   };
+}
+
+async function sendFcmTokenToBackend(
+  authToken: string,
+  fcmToken: string,
+): Promise<void> {
+  if (!authToken.trim() || !fcmToken.trim()) {
+    return;
+  }
+
+  await apiRequest<Record<string, never>>(
+    API_ENDPOINTS.auth.fcmToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({fcmToken}),
+    },
+    authToken,
+  );
+}
+
+export async function syncCurrentDeviceFcmToken(authToken: string): Promise<void> {
+  if (!authToken.trim()) {
+    return;
+  }
+  const fcmToken = await getCurrentFcmToken();
+  if (!fcmToken) {
+    return;
+  }
+
+  await sendFcmTokenToBackend(authToken, fcmToken);
+}
+
+export function subscribeAuthFcmTokenSync(
+  getAuthToken: () => string,
+): () => void {
+  return subscribeToFcmTokenRefresh(nextFcmToken => {
+    const authToken = getAuthToken().trim();
+    if (!authToken || !nextFcmToken.trim()) {
+      return;
+    }
+
+    void sendFcmTokenToBackend(authToken, nextFcmToken);
+  });
 }

@@ -23,6 +23,7 @@ import {
   loadRestaurantDashboardThunk,
   saveRestaurantProfileThunk,
 } from '../../store/slices/restaurantSlice';
+import {showGlobalSnackbar} from '../../store/slices/uiSlice';
 import {clearUserState} from '../../store/slices/userSlice';
 import type {RestaurantProfile} from '../../types';
 import {clearAllPersistedUserSessionData} from '../../utils/localStorage';
@@ -83,6 +84,12 @@ export function RestaurantProfileScreen({navigation}: Props) {
       setDraft(profileToDraft(profile));
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (error) {
+      dispatch(showGlobalSnackbar({message: error, type: 'error'}));
+    }
+  }, [dispatch, error]);
 
   const isValid = useMemo(
     () =>
@@ -222,7 +229,6 @@ export function RestaurantProfileScreen({navigation}: Props) {
                 />
 
                 {info ? <Text style={styles.infoText}>{info}</Text> : null}
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                 <Button
                   mode="outlined"
@@ -359,10 +365,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     color: PALETTE.status.success,
-    fontFamily: 'Nunito-Regular',
-  },
-  errorText: {
-    color: PALETTE.status.error,
     fontFamily: 'Nunito-Regular',
   },
   logoutBtn: {

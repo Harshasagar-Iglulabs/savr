@@ -53,7 +53,13 @@ export function LoginScreen({navigation}: Props) {
   }, [heroScale]);
 
   const onSendOtp = async () => {
-    dispatch(setToken(loginMode === 'restaurant' ? 'restaurant-demo-token' : 'user-demo-token'));
+    dispatch(
+      setToken(
+        loginMode === 'restaurant'
+          ? 'restaurant-demo-token'
+          : 'user-demo-token',
+      ),
+    );
     const result = await dispatch(requestOtpThunk());
     if (requestOtpThunk.fulfilled.match(result)) {
       navigation.navigate('Otp');

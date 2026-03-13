@@ -25,10 +25,16 @@ import {PrimaryButton} from '../../components/common/PrimaryButton';
 import {ScreenContainer} from '../../components/common/ScreenContainer';
 import {PALETTE} from '../../constants/palette';
 import type {RootStackParamList} from '../../navigation/types';
+import {
+  completeRestaurantOrder,
+  fetchRestaurantOrders,
+  type RestaurantPanelOrder,
+} from '../../services/restaurantPanel';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {resetToUserLogin} from '../../store/slices/authSlice';
 import {clearNotifications} from '../../store/slices/notificationSlice';
 import {clearRestaurantState, loadRestaurantDashboardThunk} from '../../store/slices/restaurantSlice';
+import {showGlobalSnackbar} from '../../store/slices/uiSlice';
 import {clearUserState} from '../../store/slices/userSlice';
 import {formatPrice, formatSavings} from '../../utils/format';
 import {clearAllPersistedUserSessionData} from '../../utils/localStorage';
@@ -37,59 +43,16 @@ import {epochToTimeLabel} from '../../utils/time';
 type Props = NativeStackScreenProps<RootStackParamList, 'RestaurantHome'>;
 type TabKey = 'performance' | 'orders' | 'menu' | 'profile';
 type OrdersTabKey = 'upcoming' | 'completed';
-type RestaurantOrder = {
-  id: string;
-  customerName: string;
-  status: 'placed' | 'completed';
-  orderedAtEpoch: number;
-  completedAtEpoch?: number;
-  totalAmount: number;
-  items: Array<{id: string; name: string; quantity: number}>;
-};
-
-const seededRestaurantOrders: RestaurantOrder[] = [
-  {
-    id: 'ro-101',
-    customerName: 'Rohan Patel',
-    status: 'placed',
-    orderedAtEpoch: Date.now() - 45 * 60 * 1000,
-    totalAmount: 540,
-    items: [
-      {id: 'i-1', name: 'Pesto Pasta', quantity: 1},
-      {id: 'i-2', name: 'Paneer Tikka Wrap', quantity: 1},
-    ],
-  },
-  {
-    id: 'ro-102',
-    customerName: 'Ananya Verma',
-    status: 'placed',
-    orderedAtEpoch: Date.now() - 20 * 60 * 1000,
-    totalAmount: 830,
-    items: [
-      {id: 'i-3', name: 'Pesto Pasta', quantity: 2},
-      {id: 'i-4', name: 'Greek Salad Bowl', quantity: 1},
-    ],
-  },
-  {
-    id: 'ro-099',
-    customerName: 'Karthik Rao',
-    status: 'completed',
-    orderedAtEpoch: Date.now() - 4 * 60 * 60 * 1000,
-    completedAtEpoch: Date.now() - 3 * 60 * 60 * 1000,
-    totalAmount: 460,
-    items: [{id: 'i-5', name: 'Paneer Tikka Wrap', quantity: 2}],
-  },
-];
 
 export function RestaurantHomeScreen({navigation}: Props) {
   const dispatch = useAppDispatch();
+  const token = useAppSelector(state => state.auth.session?.token ?? '');
   const {metrics, profile, menu, loading, error} = useAppSelector(state => state.restaurant);
   const [activeTab, setActiveTab] = useState<TabKey>('performance');
   const [ordersTab, setOrdersTab] = useState<OrdersTabKey>('upcoming');
-  const [restaurantOrders, setRestaurantOrders] = useState<RestaurantOrder[]>(
-    seededRestaurantOrders,
-  );
+  const [restaurantOrders, setRestaurantOrders] = useState<RestaurantPanelOrder[]>([]);
   const [expandedOrderIds, setExpandedOrderIds] = useState<Record<string, boolean>>({});
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [tabWidth, setTabWidth] = useState(0);
   const tabTranslate = useRef(new Animated.Value(4)).current;
   const ordersTabTranslate = useRef(new Animated.Value(0)).current;
@@ -118,10 +81,47 @@ export function RestaurantHomeScreen({navigation}: Props) {
   const formatCount = (value: number) => value.toLocaleString('en-US');
 
   useEffect(() => {
-    if (!profile || !metrics || !menu.length) {
-      dispatch(loadRestaurantDashboardThunk());
+    dispatch(loadRestaurantDashboardThunk());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      dispatch(showGlobalSnackbar({message: error, type: 'error'}));
     }
-  }, [dispatch, menu.length, metrics, profile]);
+  }, [dispatch, error]);
+
+  const loadOrders = useCallback(
+    async (status: 'placed' | 'completed') => {
+      if (!token.trim()) {
+        return;
+      }
+      setOrdersLoading(true);
+      try {
+        const orders = await fetchRestaurantOrders(token, status);
+        setRestaurantOrders(orders);
+      } catch (err) {
+        dispatch(
+          showGlobalSnackbar({
+            message: err instanceof Error ? err.message : String(err),
+            type: 'error',
+          }),
+        );
+      } finally {
+        setOrdersLoading(false);
+      }
+    },
+    [dispatch, token],
+  );
+
+  useEffect(() => {
+    if (activeTab !== 'orders') {
+      return;
+    }
+    const status = ordersTab === 'upcoming' ? 'placed' : 'completed';
+    loadOrders(status).catch(() => {
+      // Errors are handled in loadOrders.
+    });
+  }, [activeTab, loadOrders, ordersTab]);
 
   const tabIndex = useMemo(() => {
     if (activeTab === 'orders') {
@@ -186,15 +186,7 @@ export function RestaurantHomeScreen({navigation}: Props) {
 
   const maxRevenueValue = Math.max(...revenueBars.map(item => item.value), 1);
   const maxOrderValue = Math.max(...orderBars.map(item => item.value), 1);
-  const incomingOrders = useMemo(
-    () => restaurantOrders.filter(order => order.status !== 'completed'),
-    [restaurantOrders],
-  );
-  const fulfilledOrders = useMemo(
-    () => restaurantOrders.filter(order => order.status === 'completed'),
-    [restaurantOrders],
-  );
-  const activeOrders = ordersTab === 'upcoming' ? incomingOrders : fulfilledOrders;
+  const activeOrders = restaurantOrders;
   const ordersIndicatorTranslateX = ordersTabTranslate.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 148],
@@ -208,18 +200,35 @@ export function RestaurantHomeScreen({navigation}: Props) {
       minute: '2-digit',
     });
 
-  const markOrderCompleted = (orderId: string) => {
-    setRestaurantOrders(prev =>
-      prev.map(order =>
-        order.id === orderId
-          ? {
-              ...order,
-              status: 'completed',
-              completedAtEpoch: Date.now(),
-            }
-          : order,
-      ),
-    );
+  const markOrderCompleted = async (orderId: string) => {
+    if (!token.trim()) {
+      dispatch(
+        showGlobalSnackbar({
+          message: 'Missing authenticated token.',
+          type: 'error',
+        }),
+      );
+      return;
+    }
+
+    try {
+      await completeRestaurantOrder(orderId, token);
+      const status = ordersTab === 'upcoming' ? 'placed' : 'completed';
+      await loadOrders(status);
+      dispatch(
+        showGlobalSnackbar({
+          message: 'Order marked as completed.',
+          type: 'success',
+        }),
+      );
+    } catch (err) {
+      dispatch(
+        showGlobalSnackbar({
+          message: err instanceof Error ? err.message : String(err),
+          type: 'error',
+        }),
+      );
+    }
   };
 
   return (
@@ -246,8 +255,6 @@ export function RestaurantHomeScreen({navigation}: Props) {
                 Pull down to refresh performance
               </Text>
             </View>
-
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             {metrics ? (
               <>
@@ -436,14 +443,17 @@ export function RestaurantHomeScreen({navigation}: Props) {
                   <RNText style={styles.emptyTitle}>
                     {ordersTab === 'upcoming' ? 'No upcoming orders' : 'No completed orders'}
                   </RNText>
-                  <RNText style={styles.emptySubText}>
-                    {ordersTab === 'upcoming'
-                      ? 'New customer orders will appear here.'
-                      : 'Completed orders will appear here once marked.'}
-                  </RNText>
-                </View>
-              ) : null
-            }
+                <RNText style={styles.emptySubText}>
+                  {ordersTab === 'upcoming'
+                    ? 'New customer orders will appear here.'
+                    : 'Completed orders will appear here once marked.'}
+                </RNText>
+                {ordersLoading ? (
+                  <RNText style={styles.emptySubText}>Loading orders...</RNText>
+                ) : null}
+              </View>
+            ) : null
+          }
           />
         ) : null}
 
@@ -933,10 +943,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito-Regular',
     textAlign: 'center',
     marginTop: 12,
-  },
-  errorText: {
-    color: PALETTE.status.error,
-    fontFamily: 'Nunito-Regular',
   },
   bottomTabWrap: {
     flexDirection: 'row',

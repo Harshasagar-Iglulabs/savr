@@ -2,6 +2,7 @@ import {configureStore} from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import notificationReducer from './slices/notificationSlice';
 import restaurantReducer from './slices/restaurantSlice';
+import uiReducer from './slices/uiSlice';
 import userReducer from './slices/userSlice';
 
 export const store = configureStore({
@@ -10,6 +11,7 @@ export const store = configureStore({
     user: userReducer,
     restaurant: restaurantReducer,
     notifications: notificationReducer,
+    ui: uiReducer,
   },
 });
 
